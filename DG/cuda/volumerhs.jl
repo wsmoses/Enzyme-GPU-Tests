@@ -182,11 +182,11 @@ function volumerhs!(rhs, Q, vgeo, gravity, D, nelem)
 end
 
 function dvolumerhs!(rhs, drhs, Q, dQ, vgeo, dvgeo, grav, D, dD, nelem)
-    Enzyme.autodiff(volumerhs!, Duplicated(rhs, drhs), Duplicated(Q,dQ), Duplicated(vgeo, dvgeo), grav, Duplicated(D, dD), nelem)
+    Enzyme.autodiff_no_cassette(volumerhs!, Duplicated(rhs, drhs), Duplicated(Q,dQ), Duplicated(vgeo, dvgeo), grav, Duplicated(D, dD), nelem)
     return nothing
 end
 function dvolumerhs_const!(rhs, Q, vgeo, grav, D, nelem)
-    Enzyme.autodiff(volumerhs!, rhs, Q, vgeo, grav, D, nelem)
+    Enzyme.autodiff_no_cassette(volumerhs!, rhs, Q, vgeo, grav, D, nelem)
     return nothing
 end
 
