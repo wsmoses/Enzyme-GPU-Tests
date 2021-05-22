@@ -97,32 +97,6 @@ function volumerhs!(rhs, Q, vgeo, gravity, D, nelem)
             fluxU_x = ρinv * U * U + P
             fluxV_x = ρinv * U * V
             fluxW_x = ρinv * U * W
-        @unroll for k in 1:Nq
-            sync_threads()
-
-            # Load values will need into registers
-            MJ = vgeo[i, j, k, _MJ, e]
-            ξx, ξy, ξz = vgeo[i,j,k,_ξx,e], vgeo[i,j,k,_ξy,e], vgeo[i,j,k,_ξz,e]
-            ηx, ηy, ηz = vgeo[i,j,k,_ηx,e], vgeo[i,j,k,_ηy,e], vgeo[i,j,k,_ηz,e]
-            ζx, ζy, ζz = vgeo[i,j,k,_ζx,e], vgeo[i,j,k,_ζy,e], vgeo[i,j,k,_ζz,e]
-            z = vgeo[i,j,k,_z,e]
-
-            U, V, W = Q[i, j, k, _U, e], Q[i, j, k, _V, e], Q[i, j, k, _W, e]
-            ρ, E = Q[i, j, k, _ρ, e], Q[i, j, k, _E, e]
-            
-            # GPU performance trick
-            # Allow optimizations to use the reciprocal of an argument rather than perform division.
-            # IEEE floating-point division is implemented as a function call
-            ρinv = rcp(ρ)
-            ρ2inv = rcp(2ρ)
-            # ρ2inv = 0.5f0 * pinv
-
-            P = gdm1*(E - (U^2 + V^2 + W^2)*ρ2inv - ρ*gravity*z)
-
-            fluxρ_x = U
-            fluxU_x = ρinv * U * U + P
-            fluxV_x = ρinv * U * V
-            fluxW_x = ρinv * U * W
             fluxE_x = ρinv * U * (E + P)
 
             fluxρ_y = V
