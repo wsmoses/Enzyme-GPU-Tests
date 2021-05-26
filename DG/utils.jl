@@ -30,7 +30,7 @@ function loopinfo(name, expr, nodes...)
     return expr
 end
 
-if parse(Bool, get(ENV, "UNROLLING"), "true"))
+if parse(Bool, get(ENV, "UNROLLING", "true"))
     macro unroll(expr)
         expr = loopinfo("@unroll", expr, (Symbol("llvm.loop.unroll.full"),))
         return esc(expr)
