@@ -1,6 +1,9 @@
 include("volumerhs.jl")
 
-function main()
+# XXX: Add to GPUArrays
+Base.one(A::CuArray) = CUDA.ones(eltype(A), size(A)...)
+
+function main(N=4, nmoist=0, ntrace=0)
     DFloat = Float32
 
     nelem = 20_000
@@ -21,44 +24,32 @@ function main()
     D = CuArray(rand(rnd, DFloat, Nq, Nq))
 
     rhs = CuArray(zeros(DFloat, Nq, Nq, Nq, nvar, nelem))
-    # rhs′ = CuArray(zeros(DFloat, Nq, Nq, Nq, nvar, nelem))
 
     # CUDA.limit!(CUDA.CU_LIMIT_MALLOC_HEAP_SIZE, 1*1024^3)
     # CUDA.cache_config!(CUDA.CU_FUNC_CACHE_PREFER_L1)
 
     threads=(N+1, N+1)
 
-    # @cuda threads=threads blocks=nelem volumerhs_good!(rhs′, Q, vgeo, DFloat(grav), D, nelem)
-
     @info "Starting Enzyme run"
 
     Enzyme.API.EnzymeSetCLBool(:EnzymeRegisterReduce, true)
     # Enzyme.API.EnzymeSetCLString(:EnzymeBCPath, "/home/wmoses/git/Enzyme/enzyme/bclib")
 
-    drhs = similar(rhs)
-    drhs .= 0
-    drhs[1, 1, 1, 2, 1:1] .= 1
+    drhs  = Duplicated(rhs,  zero(rhs))
+    drhs.dval[1, 1, 1, 2, 1:1] .= 1
+    dQ    = Duplicated(Q,    zero(Q))
+    dvgeo = Duplicated(vgeo, zero(vgeo))
+    dD    = Duplicated(D,    zero(D))
 
-    dvgeo = similar(vgeo)
-    dvgeo .= 0
-
-    dQ = similar(Q)
-    dQ .= 0
-
-    dD = similar(D)
-    dD .= 0
-
-    kernel = @cuda launch=false dvolumerhs!(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem)
-    kernel(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem; threads=threads, blocks=nelem)
+    @cuda dvolumerhs!(drhs, dQ, dvgeo, DFloat(grav), dD, Val(N), Val(nmoist), Val(ntrace))
 
     o1 = rhs[1, 1, 1, 2, 1:1]
     Q[1] += 1e-4
     rhs .= 0
 
-    kernel = @cuda launch=false volumerhs!(rhs, Q, vgeo, DFloat(grav), D, nelem)
-    kernel(rhs, Q, vgeo, DFloat(grav), D, nelem; threads=threads, blocks=nelem)
+    @cuda volumerhs!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
     o2 = rhs[1, 1, 1, 2, 1:1]
-    @show dQ[1], (o2-o1) / 1e-4
+    @show dQ.dval[1], (o2-o1) / 1e-4
 end
 
 main()
