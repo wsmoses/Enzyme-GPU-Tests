@@ -5,15 +5,15 @@ const PROFILING = haskey(ENV, "NSYS_PROFILING_SESSION_ID") || haskey(ENV, "PROFI
 using TypedTables
 using CSV
 
-function main()
-    results = Table(kind=Symbol[], nelems=Int[], time=Float64[])
+# XXX: Add to GPUArrays
+Base.one(A::CuArray) = CUDA.ones(eltype(A), size(A)...)
+
+function main(N=4, nmoist=0, ntrace=0)
+    results = Table(kind=Symbol[], nelems=Int[], N=Int[], time=Float64[])
     ntrials = 10
     DFloat = Float32
 
-    points = [20_000, 40_000, 80_000, 160_000, 240_000]
     points = (1:12) * 20_000
-    # points = 240_000
-
     for nelem in points
 
     rnd = MersenneTwister(0)
@@ -39,21 +39,17 @@ function main()
 
     threads=(N+1, N+1)
 
-    # @cuda threads=threads blocks=nelem volumerhs_good!(rhs′, Q, vgeo, DFloat(grav), D, nelem)
-
-    kernel = @cuda launch=false volumerhs!(rhs, Q, vgeo, DFloat(grav), D, nelem)
+    kernel = @cuda launch=false volumerhs!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
     kernel(rhs, Q, vgeo, DFloat(grav), D, nelem; threads=threads, blocks=nelem)
 
-    # @show rhs′ ≈ rhs
-
     CUDA.@profile for _ = 1:ntrials
-        res = CUDA.@timed kernel(rhs, Q, vgeo, DFloat(grav), D, nelem; threads=threads, blocks=nelem)
-        push!(results, (kind=:primal, nelems=nelem, time=res.time))
+        res = CUDA.@timed kernel(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace); threads=threads, blocks=nelem)
+        push!(results, (kind=:primal, nelems=nelem, N=N, time=res.time))
     end
 
     if !PROFILING
         open("vrhs.ll", "w") do io
-            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none @cuda threads=threads blocks=nelem volumerhs!(rhs, Q, vgeo, DFloat(grav), D, nelem)
+            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none @cuda threads=threads blocks=nelem volumerhs!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
         end
     end
 
@@ -69,59 +65,56 @@ function main()
     Enzyme.API.EnzymeSetCLBool(:EnzymeRegisterReduce, false)
     # Enzyme.API.EnzymeSetCLString(:EnzymeBCPath, "/home/wmoses/git/Enzyme/enzyme/bclib")
 
-    kernel = @cuda launch=false dvolumerhs_const!(rhs, Q, vgeo, DFloat(grav), D, nelem)
+    kernel = @cuda launch=false dvolumerhs!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
     kernel(rhs, Q, vgeo, DFloat(grav), D, nelem; threads=threads, blocks=nelem)
 
     CUDA.@profile for _ = 1:ntrials
-        res = CUDA.@timed kernel(rhs, Q, vgeo, DFloat(grav), D, nelem; threads=threads, blocks=nelem)
-        push!(results, (kind=:all_const, nelems=nelem, time=res.time))
+        res = CUDA.@timed kernel(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace); threads=threads, blocks=nelem)
+        push!(results, (kind=:all_const, nelems=nelem, N=N, time=res.time))
     end
 
     if !PROFILING
         open("const_dvrhs.ll", "w") do io
-            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none @cuda threads=threads blocks=nelem dvolumerhs_const!(rhs, Q, vgeo, DFloat(grav), D, nelem)
+            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none begin
+                @cuda threads=threads blocks=nelem dvolumerhs_const!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
+            end
         end
     end
 
     @info "Full Enzyme run"
 
-    drhs = similar(rhs)
-    drhs .= 1
+    drhs  = Duplicated(rhs,  one(rhs))
+    dQ    = Duplicated(Q,    zero(Q))
+    dvgeo = Duplicated(vgeo, zero(vgeo))
+    dD    = Duplicated(D,    zero(D))
 
-    dvgeo = similar(vgeo)
-    dvgeo .= 0
-
-    dQ = similar(Q)
-    dQ .= 0
-
-    dD = similar(D)
-    dD .= 0
-
-    kernel = @cuda launch=false dvolumerhs!(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem)
-    kernel(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem; threads=threads, blocks=nelem)
+    kernel = @cuda launch=false dvolumerhs!(drhs, dQ, dvgeo, DFloat(grav), dD, Val(N), Val(nmoist), Val(ntrace))
+    kernel(drhs, dQ, dvgeo, DFloat(grav), dD, Val(N), Val(nmoist), Val(ntrace) ; threads=threads, blocks=nelem)
 
     CUDA.@profile for _ = 1:ntrials
-        res = CUDA.@timed kernel(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem; threads=threads, blocks=nelem)
-        push!(results, (kind=:all_dub, nelems=nelem, time=res.time))
+        res = CUDA.@timed kernel(drhs, dQ, dvgeo, DFloat(grav), dD, Val(N), Val(nmoist), Val(ntrace) ; threads=threads, blocks=nelem)
+        push!(results, (kind=:all_dub, nelems=nelem, N=N, time=res.time))
     end
 
     if !PROFILING
         open("dvrhs.ll", "w") do io
-            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none @cuda threads=threads blocks=nelem dvolumerhs!(rhs, drhs, Q, dQ, vgeo, dvgeo, DFloat(grav), D, dD, nelem)
+            CUDA.@device_code_llvm io=io dump_module=true raw=true debuginfo=:none begin
+                @cuda threads=threads blocks=nelem dvolumerhs!(drhs, dQ,  dvgeo, DFloat(grav), dD, Val(N), Val(nmoist), Val(ntrace))
+            end
         end
     end
 
-    CUDA.unsafe_free!(dD)
+    CUDA.unsafe_free!(dD.dval)
     CUDA.unsafe_free!(D)
-    CUDA.unsafe_free!(dQ)
+    CUDA.unsafe_free!(dQ.dval)
     CUDA.unsafe_free!(Q)
-    CUDA.unsafe_free!(dvgeo)
+    CUDA.unsafe_free!(dvgeo.dval)
     CUDA.unsafe_free!(vgeo)
-    CUDA.unsafe_free!(drhs)
+    CUDA.unsafe_free!(drhs.dval)
     CUDA.unsafe_free!(rhs)
     @show results
     end
-    CSV.write("profile.csv", results)
+    CSV.write("profile_$N.csv", results)
 end
 
 main()

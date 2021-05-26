@@ -19,16 +19,10 @@ const vgeoid = (ξx = _ξx, ηx = _ηx, ζx = _ζx,
                 MJ = _MJ, MJI = _MJI,
                 x = _x,   y = _y,   z = _z)
 
-# TODO:
-# Enzyme can't handle functions with `Val` inputs
-const N = 4
-const nmoist = 0
-const ntrace = 0
-
 Base.@irrational grav 9.81 BigFloat(9.81)
 Base.@irrational gdm1 0.4 BigFloat(0.4)
 
-function volumerhs!(rhs, Q, vgeo, gravity, D, nelem)
+function volumerhs!(rhs, Q, vgeo, gravity, D, ::Val{N}, ::Val{nmoist}, ::Val{ntrace}) where {N, nmoist, ntrace}
     Nq = N + 1
     nvar = _nstate + nmoist + ntrace
 
@@ -179,11 +173,8 @@ function volumerhs!(rhs, Q, vgeo, gravity, D, nelem)
     return nothing
 end
 
-function dvolumerhs!(rhs, drhs, Q, dQ, vgeo, dvgeo, grav, D, dD, nelem)
-    Enzyme.autodiff_no_cassette(volumerhs!, Duplicated(rhs, drhs), Duplicated(Q,dQ), Duplicated(vgeo, dvgeo), grav, Duplicated(D, dD), nelem)
-    return nothing
-end
-function dvolumerhs_const!(rhs, Q, vgeo, grav, D, nelem)
-    Enzyme.autodiff_no_cassette(volumerhs!, rhs, Q, vgeo, grav, D, nelem)
+
+function dvolumerhs!(rhs, Q, vgeo, grav, D, N, nmoist, ntrace)
+    Enzyme.autodiff_no_cassette(volumerhs!, rhs, Q, vgeo, grav, D, N, nmoist, ntrace)
     return nothing
 end
