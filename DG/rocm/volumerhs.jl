@@ -2,6 +2,8 @@ using AMDGPU
 using StaticArrays
 using Random
 using Enzyme
+using LLVM
+using LLVM.Interop
 
 include(joinpath(@__DIR__, "..", "utils.jl"))
 
@@ -30,10 +32,31 @@ const ntrace = 0
 Base.@irrational grav 9.81 BigFloat(9.81)
 Base.@irrational gdm1 0.4 BigFloat(0.4)
 
+@generated function addrspacecast(::Type{to}, from) where {to}
+   JuliaContext() do ctx
+        # get the element type
+        to_typ = convert(LLVMType, to, ctx)
+        from_typ = convert(LLVMType, from, ctx)
+
+        paramtyps = [from_typ]
+        llvmf, _ = create_function(to_typ, paramtyps)
+
+        # generate IR
+        Builder(ctx) do builder
+            entry = BasicBlock(llvmf, "entry", ctx)
+            position!(builder, entry)
+            val = addrspacecast!(builder, parameters(llvmf)[1], to_typ)
+            ret!(builder, val)
+        end
+
+        call_function(llvmf, to, Tuple{from}, :(from,))
+    end
+end
+
 # TODO: Add to AMDGPU.jl
 function Base.Experimental.Const(arr::AMDGPU.ROCDeviceArray{T,N, AMDGPU.AS.Global}) where {T, N}
     ptr = arr.ptr
-    ptr = reinterpret(Core.LLVMPtr{T, AMDGPU.AS.Constant}, ptr)
+    ptr = addrspacecast(Core.LLVMPtr{T, AMDGPU.AS.Constant}, ptr)
     AMDGPU.ROCDeviceArray(arr.shape, ptr)
 end
 
