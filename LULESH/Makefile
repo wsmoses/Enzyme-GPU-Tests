@@ -1,7 +1,8 @@
 # Environment Variables
 CUDA_PATH ?= /usr/local/cuda-11.2
-ENZYME_PATH ?= /home/lpaehler/Work/temporary_files/Enzyme/build
+ENZYME_PATH ?= /home/lpaehler/Work/temporary_files/Enzyme/build/ClangEnzyme-13.so
 CLANG_PATH ?= /home/lpaehler/Work/temporary_files/llvm-project/build/bin/clang++
+SM_VERSION  = 60
 
 # Ablation testing & numerical verification
 VERIFY  ?= no
@@ -20,8 +21,8 @@ DEBUG ?= no
 
 CC := $(CLANG_PATH) 
 CFLAGS  = -DNDEBUG -fno-exceptions -mllvm -enzyme-print -Rpass=enzyme -fno-experimental-new-pass-manager\
- 	-std=c++17 --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_80\
-	--no-cuda-version-check -Xclang -load -Xclang $(ENZYME_PATH)/Enzyme/ClangEnzyme-13.so
+ 	-std=c++17 --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)\
+	--no-cuda-version-check -Xclang -load -Xclang $(ENZYME_PATH)
 LDFLAGS = -lcudart_static -ldl -lrt -lpthread -lm 
 
 
