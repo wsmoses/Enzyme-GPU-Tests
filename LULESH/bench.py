@@ -3,6 +3,7 @@ import os
 import subprocess
 
 DEVICE=os.getenv("DEVICE", "5")
+CUDA_PATH=os.getenv("CUDA_PATH", "/usr/local/cuda-11.2")
 
 sizes = [60, 75, 90, 105, 120, 135]
 vars = ["MINCCACHE", "NEWCACHE"]
@@ -21,7 +22,7 @@ def run(VERIFY, FORWARD, PHIOPT, BRANCHYOPT, MINCCACHE, NEWCACHE, SPECPHI, SELEC
                 else:
                     res.append(os.popen(f"CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES={DEVICE} ./lulesh -s " + str(size) + "| grep \"out*\" | grep -e \"[0-9\.]*\" -o").read().strip())
             else:
-                res.append(os.popen(f"CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES={DEVICE} /usr/local/cuda-11.2/bin/ncu --nvtx -k ApplyMaterialPropertiesAndUpdateVolume_kernel --target-processes all ./lulesh -s " + str(size) + "| grep \"Duration\" ").read().strip())
+                res.append(os.popen(f"CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES={DEVICE} {CUDA_PATH}/bin/ncu --nvtx -k ApplyMaterialPropertiesAndUpdateVolume_kernel --target-processes all ./lulesh -s " + str(size) + "| grep \"Duration\" ").read().strip())
         print(f'VERIFY={VERIFY} OPTIMIZE={OPTIMIZE} RESTRICT={RESTRICT} FORWARD={FORWARD} PHIOPT={PHIOPT} SPECPHI={SPECPHI} SELECT={SELECT} BRANCHYOPT={BRANCHYOPT} MINCCACHE={MINCCACHE} NEWCACHE={NEWCACHE} size={size}', "\t", "\t".join(res), flush=True)
 
 def do(remain, set):
