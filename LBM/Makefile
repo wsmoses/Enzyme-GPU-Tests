@@ -2,7 +2,11 @@
 # User Options
 #===============================================================================
 
-COMPILER    = nvidia
+CUDA_PATH ?= /usr/local/cuda-11.3
+
+ENZYME_PATH ?= /home/wsmoses/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
+CLANG_PATH ?= /home/wsmoses/llvm-project/buildfast/bin/clang++
+
 OPTIMIZE    ?= yes
 
 NEWCACHE    ?= yes
@@ -34,20 +38,14 @@ obj = $(source:.cu=.o)
 #===============================================================================
 
 # Standard Flags
-CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I /usr/local/cuda-11.3/include -I .
+CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I $(CUDA_PATH)/include -I .
 # -mllvm -max-heap-to-stack-size=-1
 # -Rpass=attributor -mllvm -debug -mllvm -debug-only=attributor
 
-# Regular gcc Compiler
-ifeq ($(COMPILER),nvidia)
 
-  CC = /home/wsmoses/llvm-project/buildfast/bin/clang++
-  CFLAGS += -ffast-math -mllvm -enzyme-print -Rpass=enzyme -fno-experimental-new-pass-manager --cuda-path=/usr/local/cuda-11.3 -L/usr/local/cuda-11.3/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang /home/wsmoses/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
+CC := $(CLANG_PATH)
+CFLAGS += -ffast-math -fno-experimental-new-pass-manager --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH)
   
-  # CC = /home/wsmoses/llvm-project/build/bin/clang++
-  # CFLAGS += -ffast-math -mllvm -enzyme-print -Rpass=enzyme -fno-experimental-new-pass-manager --cuda-path=/usr/local/cuda-11.3 -L/usr/local/cuda-11.3/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang /home/wsmoses/Enzyme/enzyme/build13D/Enzyme/ClangEnzyme-13.so
-
-endif
 
 # Linker Flags
 LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm
