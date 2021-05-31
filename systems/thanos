@@ -1,0 +1,301 @@
+SHELL=/bin/bash
+SUDO_GID=1000
+HOSTNAME=thanos
+HISTSIZE=1000
+SUDO_COMMAND=./collect_environment.sh
+SUDO_USER=lpaehler
+PWD=/home/lpaehler/Work/temporary_files/Enzyme-GPU-Tests/systems
+LOGNAME=USER
+HOME=/USER
+LANG=en_GB.UTF-8
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.m4a=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.oga=01;36:*.opus=01;36:*.spx=01;36:*.xspf=01;36:
+TERM=xterm-256color
+USER=USER
+SHLVL=0
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/lib/snapd/snap/bin
+SUDO_UID=1000
+MAIL=/var/spool/mail/lpaehler
+_=/usr/bin/env
++ lsb_release -a
+./collect_environment.sh: line 10: lsb_release: command not found
++ uname -a
+Linux thanos 5.11.17-200.fc33.x86_64 #1 SMP Wed Apr 28 17:34:39 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
++ lscpu
+Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Byte Order:                      Little Endian
+Address sizes:                   43 bits physical, 48 bits virtual
+CPU(s):                          128
+On-line CPU(s) list:             0-127
+Thread(s) per core:              2
+Core(s) per socket:              64
+Socket(s):                       1
+NUMA node(s):                    1
+Vendor ID:                       AuthenticAMD
+CPU family:                      23
+Model:                           49
+Model name:                      AMD EPYC 7702 64-Core Processor
+Stepping:                        0
+Frequency boost:                 enabled
+CPU MHz:                         1500.000
+CPU max MHz:                     3353.5149
+CPU min MHz:                     1500.0000
+BogoMIPS:                        4000.18
+Virtualization:                  AMD-V
+L1d cache:                       2 MiB
+L1i cache:                       2 MiB
+L2 cache:                        32 MiB
+L3 cache:                        256 MiB
+NUMA node0 CPU(s):               0-127
+Vulnerability Itlb multihit:     Not affected
+Vulnerability L1tf:              Not affected
+Vulnerability Mds:               Not affected
+Vulnerability Meltdown:          Not affected
+Vulnerability Spec store bypass: Mitigation; Speculative Store Bypass disabled via prctl and seccomp
+Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:        Mitigation; Full AMD retpoline, IBPB conditional, IBRS_FW, STIBP conditional, RSB filling
+Vulnerability Srbds:             Not affected
+Vulnerability Tsx async abort:   Not affected
+Flags:                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate sme ssbd mba sev ibrs ibpb stibp vmmcall sev_es fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd amd_ppin arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif umip rdpid overflow_recov succor smca
++ cat /proc/meminfo
+MemTotal:       263832484 kB
+MemFree:        117719732 kB
+MemAvailable:   254231464 kB
+Buffers:            2532 kB
+Cached:         134857336 kB
+SwapCached:            0 kB
+Active:          8701872 kB
+Inactive:       128024184 kB
+Active(anon):     175716 kB
+Inactive(anon):  2282224 kB
+Active(file):    8526156 kB
+Inactive(file): 125741960 kB
+Unevictable:          32 kB
+Mlocked:              32 kB
+SwapTotal:       4194300 kB
+SwapFree:        4194300 kB
+Dirty:               172 kB
+Writeback:             0 kB
+AnonPages:       1866252 kB
+Mapped:           686376 kB
+Shmem:            597304 kB
+KReclaimable:    4536896 kB
+Slab:            6184332 kB
+SReclaimable:    4536896 kB
+SUnreclaim:      1647436 kB
+KernelStack:       24880 kB
+PageTables:        26516 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    136110540 kB
+Committed_AS:    6066608 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:      632476 kB
+VmallocChunk:          0 kB
+Percpu:           287744 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:     4259212 kB
+DirectMap2M:    31252480 kB
+DirectMap1G:    233832448 kB
++ inxi -F -c0
+./collect_environment.sh: line 14: inxi: command not found
++ lsblk -a
+NAME                   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+zram0                  252:0    0     4G  0 disk [SWAP]
+nvme1n1                259:0    0 476.9G  0 disk 
+├─nvme1n1p1            259:1    0   600M  0 part /boot/efi
+├─nvme1n1p2            259:2    0     1G  0 part /boot
+└─nvme1n1p3            259:3    0 475.4G  0 part 
+  ├─fedora_thanos-root 253:0    0 125.3G  0 lvm  /
+  └─fedora_thanos-home 253:2    0   300G  0 lvm  
+nvme0n1                259:4    0     7T  0 disk 
+└─work_filesystem-work 253:1    0   6.9T  0 lvm  /home/lpaehler/Work
++ lsscsi -s
+./collect_environment.sh: line 16: lsscsi: command not found
++ module list
+./collect_environment.sh: line 17: module: command not found
++ nvidia-smi
+Mon May 31 13:59:57 2021       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 465.19.01    Driver Version: 465.19.01    CUDA Version: 11.3     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA RTX A6000    Off  | 00000000:01:00.0 Off |                  Off |
+| 30%   59C    P0    71W / 300W |      3MiB / 48685MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  NVIDIA RTX A6000    Off  | 00000000:C1:00.0 Off |                  Off |
+| 42%   68C    P2    95W / 300W |   1892MiB / 48685MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    1   N/A  N/A   2782292      C   ...ols/julia-1.6.1/bin/julia     1889MiB |
++-----------------------------------------------------------------------------+
++ lshw -short -quiet -sanitize
++ cat
+H/W path              Device           Class          Description
+=================================================================
+                                       system         Super Server (To be filled by O.E.M.)
+/0                                     bus            H12SSL-i
+/0/0                                   memory         64KiB BIOS
+/0/28                                  memory         256GiB System Memory
+/0/28/0                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/1                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/2                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/3                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/4                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/5                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/6                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/28/7                                memory         32GiB DIMM DDR4 Synchronous Registered (Buffered) 3200 MHz (0.3 ns)
+/0/2b                                  memory         4MiB L1 cache
+/0/2c                                  memory         32MiB L2 cache
+/0/2d                                  memory         256MiB L3 cache
+/0/2e                                  processor      AMD EPYC 7702 64-Core Processor
+/0/100                                 bridge         Starship/Matisse Root Complex
+/0/100/0.2                             generic        Starship/Matisse IOMMU
+/0/100/1.1                             bridge         Starship/Matisse GPP Bridge
+/0/100/1.1/0          /dev/fb0         display        GA102GL [RTX A6000]
+/0/100/1.1/0.1                         multimedia     GA102 High Definition Audio Controller
+/0/100/3.3                             bridge         Starship/Matisse GPP Bridge
+/0/100/3.3/0          /dev/nvme1       storage        Samsung SSD 970 PRO 512GB
+/0/100/3.3/0/1        /dev/nvme1n1     disk           512GB NVMe disk
+/0/100/3.3/0/1/1                       volume         599MiB Windows FAT volume
+/0/100/3.3/0/1/2      /dev/nvme1n1p2   volume         1023MiB EFI partition
+/0/100/3.3/0/1/3      /dev/nvme1n1p3   volume         475GiB LVM Physical Volume
+/0/100/7.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/100/7.1/0                           generic        Starship/Matisse PCIe Dummy Function
+/0/100/7.1/0.2                         generic        Starship/Matisse PTDMA
+/0/100/8.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/100/8.1/0                           generic        Starship/Matisse Reserved SPP
+/0/100/8.1/0.2                         generic        Starship/Matisse PTDMA
+/0/100/8.1/0.3                         bus            Starship USB 3.0 Host Controller
+/0/100/8.1/0.3/0      usb7             bus            xHCI Host Controller
+/0/100/8.1/0.3/1      usb8             bus            xHCI Host Controller
+/0/100/14                              bus            FCH SMBus Controller
+/0/100/14.3                            bridge         FCH LPC Bridge
+/0/101                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/102                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/103                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/104                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/105                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/106                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/107                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/108                                 bridge         Starship Device 24; Function 0
+/0/109                                 bridge         Starship Device 24; Function 1
+/0/10a                                 bridge         Starship Device 24; Function 2
+/0/10b                                 bridge         Starship Device 24; Function 3
+/0/10c                                 bridge         Starship Device 24; Function 4
+/0/10d                                 bridge         Starship Device 24; Function 5
+/0/10e                                 bridge         Starship Device 24; Function 6
+/0/10f                                 bridge         Starship Device 24; Function 7
+/0/110                                 bridge         Starship/Matisse Root Complex
+/0/110/0.2                             generic        Starship/Matisse IOMMU
+/0/110/1.1                             bridge         Starship/Matisse GPP Bridge
+/0/110/1.2                             bridge         Starship/Matisse GPP Bridge
+/0/110/1.2/0          /dev/nvme0       storage        KCM61RUL7T68
+/0/110/1.2/0/1        /dev/nvme0n1     volume         7153GiB NVMe disk
+/0/110/3.3                             bridge         Starship/Matisse GPP Bridge
+/0/110/3.3/0                           bus            ASM1042A USB 3.0 Host Controller
+/0/110/3.3/0/0        usb1             bus            xHCI Host Controller
+/0/110/3.3/0/1        usb2             bus            xHCI Host Controller
+/0/110/3.4                             bridge         Starship/Matisse GPP Bridge
+/0/110/3.4/0                           bridge         AST1150 PCI-to-PCI Bridge
+/0/110/3.4/0/0                         display        ASPEED Graphics Family
+/0/110/3.5                             bridge         Starship/Matisse GPP Bridge
+/0/110/3.5/0                           bus            ASM1042A USB 3.0 Host Controller
+/0/110/3.5/0/0        usb3             bus            xHCI Host Controller
+/0/110/3.5/0/1        usb4             bus            xHCI Host Controller
+/0/110/3.6                             bridge         Starship/Matisse GPP Bridge
+/0/110/3.6/0          eno1             network        NetXtreme BCM5720 Gigabit Ethernet PCIe
+/0/110/3.6/0.1        eno2             network        NetXtreme BCM5720 Gigabit Ethernet PCIe
+/0/110/7.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/110/7.1/0                           generic        Starship/Matisse PCIe Dummy Function
+/0/110/7.1/0.2                         generic        Starship/Matisse PTDMA
+/0/110/8.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/110/8.1/0                           generic        Starship/Matisse Reserved SPP
+/0/110/8.1/0.1                         generic        Starship/Matisse Cryptographic Coprocessor PSPCPP
+/0/110/8.1/0.2                         generic        Starship/Matisse PTDMA
+/0/110/8.1/0.3                         bus            Starship USB 3.0 Host Controller
+/0/110/8.1/0.3/0      usb5             bus            xHCI Host Controller
+/0/110/8.1/0.3/0/1                     bus            USB Virtual Hub
+/0/110/8.1/0.3/0/1/1                   input          SMCI HID KM
+/0/110/8.1/0.3/0/1/2  enp73s0f3u1u2c2  communication  RNDIS/Ethernet Gadget
+/0/110/8.1/0.3/1      usb6             bus            xHCI Host Controller
+/0/110/8.2                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/110/8.2/0                           storage        FCH SATA Controller [AHCI mode]
+/0/110/8.3                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/110/8.3/0                           storage        FCH SATA Controller [AHCI mode]
+/0/111                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/112                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/113                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/114                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/115                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/116                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/117                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/118                                 bridge         Starship/Matisse Root Complex
+/0/118/0.2                             generic        Starship/Matisse IOMMU
+/0/118/7.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/118/7.1/0                           generic        Starship/Matisse PCIe Dummy Function
+/0/118/7.1/0.2                         generic        Starship/Matisse PTDMA
+/0/118/8.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/118/8.1/0                           generic        Starship/Matisse Reserved SPP
+/0/118/8.1/0.2                         generic        Starship/Matisse PTDMA
+/0/118/8.2                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/118/8.2/0                           storage        FCH SATA Controller [AHCI mode]
+/0/118/8.3                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/118/8.3/0                           storage        FCH SATA Controller [AHCI mode]
+/0/119                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11a                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11b                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11c                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11d                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11e                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/11f                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/120                                 bridge         Starship/Matisse Root Complex
+/0/120/0.2                             generic        Starship/Matisse IOMMU
+/0/120/1.1                             bridge         Starship/Matisse GPP Bridge
+/0/120/1.1/0                           display        GA102GL [RTX A6000]
+/0/120/1.1/0.1                         multimedia     GA102 High Definition Audio Controller
+/0/120/7.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/120/7.1/0                           generic        Starship/Matisse PCIe Dummy Function
+/0/120/7.1/0.2                         generic        Starship/Matisse PTDMA
+/0/120/8.1                             bridge         Starship/Matisse Internal PCIe GPP Bridge 0 to bus[E:B]
+/0/120/8.1/0                           generic        Starship/Matisse Reserved SPP
+/0/120/8.1/0.2                         generic        Starship/Matisse PTDMA
+/0/121                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/122                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/123                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/124                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/125                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/126                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/127                                 bridge         Starship/Matisse PCIe Dummy Host Bridge
+/0/1                                   system         PnP device PNP0c01
+/0/2                                   system         PnP device PNP0b00
+/0/3                                   system         PnP device PNP0c02
+/0/4                                   communication  PnP device PNP0501
+/0/5                                   communication  PnP device PNP0501
+/0/6                                   system         PnP device PNP0c02
+/1                                     power          PWS-1K25P-PQ
+/2                                     power          To Be Filled By O.E.M.
