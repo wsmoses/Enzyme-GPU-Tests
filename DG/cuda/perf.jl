@@ -14,6 +14,12 @@ function main(N=4, nmoist=0, ntrace=0)
     DFloat = Float32
 
     points = (1:12) * 20_000
+    if parse(Bool, get(ENV, "COALESE", "false")) || !parse(Bool, get(ENV, "UNROLLING", "true"))
+        points = [20_000]
+    end
+    @show parse(Bool, get(ENV, "COALESE", "false")), !parse(Bool, get(ENV, "UNROLLING", "true"))
+
+    CUDA.limit!(CUDA.CU_LIMIT_MALLOC_HEAP_SIZE, 1*1024^3)
     for nelem in points
 
     rnd = MersenneTwister(0)
@@ -62,7 +68,13 @@ function main(N=4, nmoist=0, ntrace=0)
         # Enzyme.API.EnzymeSetCLBool(:EnzymePrintActivity, true)
     end
 
-    Enzyme.API.EnzymeSetCLBool(:EnzymeRegisterReduce, false)
+    Enzyme.API.EnzymeSetCLBool(:EnzymePostOpt, true)
+
+    if parse(Bool, get(ENV, "COALESE", "true"))
+        Enzyme.API.EnzymeSetCLBool(:EnzymeCoalese, true)
+    end
+
+    # Enzyme.API.EnzymeSetCLBool(:EnzymeRegisterReduce, false)
     # Enzyme.API.EnzymeSetCLString(:EnzymeBCPath, "/home/wmoses/git/Enzyme/enzyme/bclib")
 
     kernel = @cuda launch=false dvolumerhs!(rhs, Q, vgeo, DFloat(grav), D, Val(N), Val(nmoist), Val(ntrace))
@@ -112,7 +124,7 @@ function main(N=4, nmoist=0, ntrace=0)
     CUDA.unsafe_free!(vgeo)
     CUDA.unsafe_free!(drhs.dval)
     CUDA.unsafe_free!(rhs)
-    @show results
+    # @show results
     end
     CSV.write("profile_$N.csv", results)
 end
