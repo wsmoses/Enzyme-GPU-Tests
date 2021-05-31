@@ -1,23 +1,32 @@
+#!/usr/bin/python
 import os
 import subprocess
 
-def run(OPTIMIZE, FORWARD, INLINE, NEWCACHE, AA, PHISTRUCT, TEMPLATIZE, runs):
-    comp = subprocess.run(f'OPTIMIZE={OPTIMIZE} FORWARD={FORWARD} INLINE={INLINE} NEWCACHE={NEWCACHE} AA={AA} PHISTRUCT={PHISTRUCT} TEMPLATIZE={TEMPLATIZE} make -B -j', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    assert (comp.returncode == 0)
-    out = {}
-    size = "large"
-    res = []
-    for i in range(runs):
-        res.append(os.popen("./XSBench -m event -k " + size + "| grep \"Runtime\" | grep -e \"[0-9\.]*\" -o").read().strip())
-    out[size] = res
-    print(f'OPTIMIZE={OPTIMIZE} FORWARD={FORWARD} INLINE={INLINE} NEWCACHE={NEWCACHE} AA={AA} PHISTRUCT={PHISTRUCT} TEMPLATIZE={TEMPLATIZE}', "\t", "\t".join(res), flush=True)
-    return res
+sizes = [60, 75, 90, 105, 120, 135]
+vars = ["MINCCACHE", "NEWCACHE"]
 
-vars = ["OPTIMIZE", "INLINE", "NEWCACHE", "AA", "PHISTRUCT", "TEMPLATIZE" , "FORWARD"]
+def run(VERIFY, FORWARD, AGGRPHIOPT, PHIOPT, BRANCHYOPT, MINCCACHE, NEWCACHE, runs, sizes):
+    print(f'VERIFY={VERIFY} FORWARD={FORWARD} AGGRPHIOPT={AGGRPHIOPT} PHIOPT={PHIOPT} BRANCHYOPT={BRANCHYOPT} MINCCACHE={MINCCACHE} NEWCACHE={NEWCACHE} make -B -j', flush=True)
+    comp = subprocess.run(f'VERIFY={VERIFY} FORWARD={FORWARD} AGGRPHIOPT={AGGRPHIOPT} PHIOPT={PHIOPT} BRANCHYOPT={BRANCHYOPT} MINCCACHE={MINCCACHE} NEWCACHE={NEWCACHE} make -B -j', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert (comp.returncode == 0)
+    
+    for size in sizes:
+        res = []
+        for i in range(runs):
+            res.append(os.popen("/usr/local/cuda-11.2/bin/ncu --nvtx -k ApplyMaterialPropertiesAndUpdateVolume_kernel --target-processes all ./lulesh -s " + str(size) + "| grep \"Duration\" | grep -e \"[0-9.]*\" -o").read().strip())
+        print(f'VERIFY={VERIFY} FORWARD={FORWARD} AGGRPHIOPT={AGGRPHIOPT} PHIOPT={PHIOPT} BRANCHYOPT={BRANCHYOPT} MINCCACHE={MINCCACHE} NEWCACHE={NEWCACHE} size={size}', "\t", "\t".join(res), flush=True)
 
 def do(remain, set):
     if len(remain) == 0:
-        print(set)
+        if set["FORWARD"] == "yes":
+            runb = True
+            for k in set:
+                if k != "OPTIMIZE":
+                    if set[k]=="no":
+                        runb = False
+                        break
+            if not runb:
+                return
         run(**set)
     else:
         strue = set.copy()
@@ -27,4 +36,17 @@ def do(remain, set):
         sfalse[remain[0]] = "no"
         do(remain[1:], sfalse)
 
-do(vars[0:], {"runs":5})
+def merge(a, b):
+    c = {}
+    for m in a:
+        c[m] = a[m]
+    for m in b:
+        c[m] = b[m]
+    return c
+
+def scaling():
+    start = {"runs": 1, sizes, "VERIFY": "no"}
+    run(**(merge(start, {"FORWARD": "yes", "AGGRPHIOPT": "no", "PHIOPT": "no", "BRANCHYOPT": "no", "MINCCACHE": "yes", "NEWCACHE": yes})))
+    run(**(merge(start, {"FORWARD": "no", "AGGRPHIOPT": "no", "PHIOPT": "no", "BRANCHYOPT": "no", "MINCCACHE": "yes", "NEWCACHE": yes})))
+
+scaling()
