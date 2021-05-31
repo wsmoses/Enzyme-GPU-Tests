@@ -1,0 +1,283 @@
+LD_LIBRARY_PATH=/usr/local/cuda-11/lib64:/usr/local/cuda-11/lib64:
+USER=USER
+PWD=/home/USER/git/Enzyme/enzyme/sc/SCTests/systems
+HOME=/home/USER
+CONDA_PYTHON_EXE=/home/USER/anaconda3/bin/python
+CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
+LIBVIRT_DEFAULT_URI=qemu:///system
+SHELL=/bin/bash
+TERM=xterm-color
+PINENTRY_USER_DATA=USE_CURSES=1
+SHLVL=5
+JULIA_NUM_THREADS=4
+LOGNAME=USER
+PATH=/home/USER/.cfg/arcanist/arcanist/bin:/usr/local/cuda-10.1/bin:/home/USER/.cargo/bin:/home/USER/.local/bin:/home/USER/.cfg/arcanist/arcanist/bin:/home/USER/anaconda3/condabin:/usr/local/cuda-10.1/bin:/home/USER/.cargo/bin:/home/USER/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+LESSOPEN=| /usr/bin/lesspipe %s
+Distributor ID:	Ubuntu
+Description:	Ubuntu 18.04.5 LTS
+Release:	18.04
+Codename:	bionic
+Linux beast 4.15.0-143-generic #147-Ubuntu SMP Wed Apr 14 16:10:11 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+Architecture:        x86_64
+CPU op-mode(s):      32-bit, 64-bit
+Byte Order:          Little Endian
+CPU(s):              64
+On-line CPU(s) list: 0-63
+Thread(s) per core:  2
+Core(s) per socket:  32
+Socket(s):           1
+NUMA node(s):        1
+Vendor ID:           AuthenticAMD
+CPU family:          23
+Model:               49
+Model name:          AMD Ryzen Threadripper 3970X 32-Core Processor
+Stepping:            0
+CPU MHz:             2200.036
+CPU max MHz:         3700.0000
+CPU min MHz:         2200.0000
+BogoMIPS:            7400.12
+Virtualization:      AMD-V
+L1d cache:           32K
+L1i cache:           32K
+L2 cache:            512K
+L3 cache:            16384K
+NUMA node0 CPU(s):   0-63
+Flags:               fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate sme ssbd ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif umip rdpid overflow_recov succor smca
+MemTotal:       131964540 kB
+MemFree:         8918060 kB
+MemAvailable:   114738284 kB
+Buffers:        14416904 kB
+Cached:         59920872 kB
+SwapCached:            0 kB
+Active:         51813864 kB
+Inactive:       35635856 kB
+Active(anon):   13112916 kB
+Inactive(anon):    28264 kB
+Active(file):   38700948 kB
+Inactive(file): 35607592 kB
+Unevictable:          36 kB
+Mlocked:              36 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:               976 kB
+Writeback:        243320 kB
+AnonPages:      13112016 kB
+Mapped:           760948 kB
+Shmem:             33372 kB
+Slab:           34089236 kB
+SReclaimable:   32635060 kB
+SUnreclaim:      1454176 kB
+KernelStack:       52032 kB
+PageTables:       154484 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    65720124 kB
+Committed_AS:   51831124 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:     256
+HugePages_Free:      252
+HugePages_Rsvd:       60
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:    16996468 kB
+DirectMap2M:    115015680 kB
+DirectMap1G:     2097152 kB
+NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+loop0         7:0    0  67.6M  1 loop /snap/sublime-text/85
+loop1         7:1    0   2.2M  1 loop /snap/gnome-system-monitor/157
+loop2         7:2    0  80.1M  1 loop /snap/ffmpeg/1286
+loop3         7:3    0  28.9M  1 loop /snap/node/4150
+loop4         7:4    0   2.5M  1 loop /snap/gnome-calculator/826
+loop5         7:5    0 146.3M  1 loop /snap/slack/39
+loop6         7:6    0   2.5M  1 loop /snap/gnome-calculator/884
+loop7         7:7    0 146.3M  1 loop /snap/slack/40
+loop8         7:8    0  99.2M  1 loop /snap/core/10958
+loop9         7:9    0   276K  1 loop /snap/gnome-characters/708
+loop10        7:10   0   276K  1 loop /snap/gnome-characters/570
+loop11        7:11   0  57.2M  1 loop /snap/sublime-text/97
+loop12        7:12   0  64.8M  1 loop /snap/gtk-common-themes/1514
+loop13        7:13   0  55.5M  1 loop /snap/core18/1997
+loop14        7:14   0 140.7M  1 loop /snap/gnome-3-26-1604/100
+loop15        7:15   0   956K  1 loop /snap/gnome-logs/100
+loop16        7:16   0 217.9M  1 loop /snap/gnome-3-34-1804/60
+loop17        7:17   0   131M  1 loop /snap/dotnet-sdk/126
+loop18        7:18   0   2.2M  1 loop /snap/gnome-system-monitor/148
+loop19        7:19   0   219M  1 loop /snap/gnome-3-34-1804/66
+loop20        7:20   0    99M  1 loop /snap/core/11081
+loop21        7:21   0  51.7M  1 loop /snap/ffmpeg/821
+loop22        7:22   0   548K  1 loop /snap/gnome-logs/103
+loop23        7:23   0 161.4M  1 loop /snap/gnome-3-28-1804/128
+loop24        7:24   0  61.7M  1 loop /snap/core20/1026
+loop25        7:25   0 140.7M  1 loop /snap/gnome-3-26-1604/102
+loop26        7:26   0  65.1M  1 loop /snap/gtk-common-themes/1515
+loop27        7:27   0  61.7M  1 loop /snap/core20/975
+loop28        7:28   0  55.4M  1 loop /snap/core18/2066
+loop29        7:29   0         1 loop 
+loop30        7:30   0 162.9M  1 loop /snap/gnome-3-28-1804/145
+loop31        7:31   0  29.1M  1 loop /snap/node/4594
+loop32        7:32   0 132.7M  1 loop /snap/dotnet-sdk/128
+loop33        7:33   0 134.6M  1 loop /snap/skype/172
+loop34        7:34   0 134.6M  1 loop /snap/skype/173
+sda           8:0    0   477G  0 disk 
+├─sda1        8:1    0   450M  0 part 
+├─sda2        8:2    0   100M  0 part 
+├─sda3        8:3    0    16M  0 part 
+├─sda4        8:4    0 475.9G  0 part 
+└─sda5        8:5    0   524M  0 part 
+sdb           8:16   0   3.7T  0 disk 
+└─sdb1        8:17   0   3.7T  0 part /mnt/Data
+sdc           8:32   0  10.9T  0 disk /mnt/Media
+sdd           8:48   0  10.9T  0 disk 
+└─sdd1        8:49   0  10.9T  0 part /mnt/Media2
+sr0          11:0    1  1024M  0 rom  
+nvme0n1     259:0    0 238.5G  0 disk 
+├─nvme0n1p1 259:1    0   512M  0 part /boot/efi
+└─nvme0n1p2 259:2    0   238G  0 part /
+nvme1n1     259:3    0   1.8T  0 disk 
+└─nvme1n1p1 259:5    0   1.8T  0 part /mnt/pci4
+nvme2n1     259:4    0   1.8T  0 disk /mnt/sabrent
+Mon May 31 06:50:49 2021       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 460.73.01    Driver Version: 460.73.01    CUDA Version: 11.2     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  GeForce RTX 3090    Off  | 00000000:21:00.0  On |                  N/A |
+| 30%   35C    P8    10W / 350W |      7MiB / 24265MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  GeForce RTX 208...  Off  | 00000000:4A:00.0 Off |                  N/A |
+| 41%   51C    P2   168W / 250W |   5588MiB /  7982MiB |    100%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A     56864      G   ...4.3/target-linux-x64/nsys        4MiB |
+|    1   N/A  N/A     56876      C   ...julia-1.6.0-rc1/bin/julia     5585MiB |
++-----------------------------------------------------------------------------+
+H/W path            Device        Class       Description
+=========================================================
+                                  system      Computer
+/0                                bus         Motherboard
+/0/0                              memory      125GiB System memory
+/0/1                              processor   AMD Ryzen Threadripper 3970X 32-Core Processor
+/0/100                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/100/0.2                        generic     Advanced Micro Devices, Inc. [AMD]
+/0/100/1.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/100/1.1/0                      storage     NVMe SSD Controller SM951/PM951
+/0/100/1.1/0/0      /dev/nvme0    storage     Samsung SSD 950 PRO 256GB
+/0/100/1.1/0/0/1    /dev/nvme0n1  disk        NVMe namespace
+/0/100/7.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/100/7.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/100/8.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/100/8.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/100/8.1/0.3                    bus         Advanced Micro Devices, Inc. [AMD]
+/0/100/14                         bus         FCH SMBus Controller
+/0/100/14.3                       bridge      FCH LPC Bridge
+/0/101                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/102                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/103                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/104                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/105                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/106                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/107                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/108                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/109                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10a                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10b                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10c                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10d                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10e                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/10f                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/110                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/110/0.2                        generic     Advanced Micro Devices, Inc. [AMD]
+/0/110/3.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/110/3.1/0                      display     NVIDIA Corporation
+/0/110/3.1/0.1                    multimedia  NVIDIA Corporation
+/0/110/7.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/110/7.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/110/8.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/110/8.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/110/8.1/0.1                    generic     Advanced Micro Devices, Inc. [AMD]
+/0/110/8.1/0.3                    bus         Advanced Micro Devices, Inc. [AMD]
+/0/110/8.1/0.4                    multimedia  Advanced Micro Devices, Inc. [AMD]
+/0/111                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/112                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/113                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/114                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/115                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/116                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/117                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/0.2                        generic     Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0                      bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/2                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/2/0                  bus         ASMedia Technology Inc.
+/0/118/1.1/0/4                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/4/0    eno1          network     I211 Gigabit Network Connection
+/0/118/1.1/0/5                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/5/0    enp69s0       network     I211 Gigabit Network Connection
+/0/118/1.1/0/6                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/6/0                  network     Intel Corporation
+/0/118/1.1/0/8                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/8/0                  generic     Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/8/0.1                bus         Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/8/0.3                bus         Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/9                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/9/0                  storage     FCH SATA Controller [AHCI mode]
+/0/118/1.1/0/a                    bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.1/0/a/0                  storage     FCH SATA Controller [AHCI mode]
+/0/118/1.3                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/1.3/0                      display     NVIDIA Corporation
+/0/118/1.3/0.1                    multimedia  NVIDIA Corporation
+/0/118/1.3/0.2                    bus         NVIDIA Corporation
+/0/118/1.3/0.3                    bus         NVIDIA Corporation
+/0/118/3.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/3.1/0                      storage     Non-Volatile memory controller
+/0/118/3.1/0/0      /dev/nvme1    storage     Sabrent Rocket 4.0 2TB
+/0/118/3.2                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/3.2/0                      storage     Non-Volatile memory controller
+/0/118/3.2/0/0      /dev/nvme2    storage     Force MP600
+/0/118/7.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/7.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/118/8.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/118/8.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/119                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11a                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11b                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11c                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11d                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11e                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/11f                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/120                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/120/0.2                        generic     Advanced Micro Devices, Inc. [AMD]
+/0/120/7.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/120/7.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/120/8.1                        bridge      Advanced Micro Devices, Inc. [AMD]
+/0/120/8.1/0                      generic     Advanced Micro Devices, Inc. [AMD]
+/0/121                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/122                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/123                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/124                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/125                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/126                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/127                            bridge      Advanced Micro Devices, Inc. [AMD]
+/0/2                scsi9         storage     
+/0/2/0.0.0          /dev/cdrom    disk        BD-RE  BH14NS40
+/1                  virbr0-nic    network     Ethernet interface

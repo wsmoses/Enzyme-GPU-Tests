@@ -1,23 +1,24 @@
 #===============================================================================
 # User Options
 #===============================================================================
+CUDA_PATH ?= /usr/local/cuda-11.2
 
-CUDA_PATH ?= /usr/local/cuda-11.3
+ENZYME_PATH ?= /home/wmoses/git/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
+CLANG_PATH ?= /mnt/sabrent/wmoses/llvm13/buildallfast/bin/clang++
 
-ENZYME_PATH ?= /home/wsmoses/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
-CLANG_PATH ?= /home/wsmoses/llvm-project/buildfast/bin/clang++
+# ENZYME_PATH ?= /home/wmoses/git/Enzyme/enzyme/build13D/Enzyme/ClangEnzyme-13.so
+# CLANG_PATH ?= /mnt/sabrent/wmoses/llvm13/buildall/bin/clang++
 
 OPTIMIZE    ?= yes
 
 NEWCACHE    ?= yes
+MINCUT      ?= no
+
 AA          ?= no
-PHISTRUCT   ?= no
+PHISTRUCT   ?= yes
 FORWARD     ?= no
-COALESE     ?= yes
+INLINE      ?= yes
 CACHELICM   ?= yes
-ABI         ?= yes
-ALLOCATOR   ?= yes
-VERIFY      ?= no
 
 DEBUG       = no
 PROFILE     = no
@@ -29,7 +30,13 @@ SM_VERSION  = 60
 
 program = rsbench
 
-source = lbm.cu main.cc parboil_cuda.c args.c
+source = \
+main.cu \
+simulation.cu\
+io.cu \
+init.cu \
+material.cu \
+utils.cu
 
 obj = $(source:.cu=.o)
 
@@ -38,14 +45,12 @@ obj = $(source:.cu=.o)
 #===============================================================================
 
 # Standard Flags
-CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I $(CUDA_PATH)/include -I .
+CFLAGS := -mllvm -max-heap-to-stack-size=1000000
 # -mllvm -max-heap-to-stack-size=-1
 # -Rpass=attributor -mllvm -debug -mllvm -debug-only=attributor
 
-
 CC := $(CLANG_PATH)
-CFLAGS += -ffast-math -fno-experimental-new-pass-manager --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH)
-  
+CFLAGS := -fno-experimental-new-pass-manager --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) 
 
 # Linker Flags
 LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm
@@ -54,20 +59,6 @@ LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm
 ifeq ($(DEBUG),yes)
   CFLAGS += -g -G
   LDFLAGS += -g -G
-endif
-
-ifeq ($(ALLOCATOR),yes)
-  CFLAGS += -DALLOCATOR
-endif
-
-ifeq ($(VERIFY),yes)
-  CFLAGS += -DVERIFY
-endif
-
-ifeq ($(ABI),yes)
-  CFLAGS += -DABI
-else
-  CFLAGS += -DSIZE=8
 endif
 
 # Profiling Flags
@@ -84,23 +75,22 @@ endif
 
 # Optimization Flags
 ifeq ($(FORWARD),yes)
-  CFLAGS += 
-else
-  CFLAGS += -DALLOW_AD=1 
+  CFLAGS += -DFORWARD=1
 endif
 
 
 # Optimization Flags
 ifeq ($(NEWCACHE),yes)
-  CFLAGS += -mllvm -enzyme-new-cache=1 -mllvm -enzyme-mincut-cache=1
-  ifeq ($(ABI),yes)
-    CFLAGS += -DSIZE=20
-  endif
+  CFLAGS += -mllvm -enzyme-new-cache=1
 else
-  CFLAGS += -mllvm -enzyme-new-cache=0 -mllvm -enzyme-mincut-cache=0
-  ifeq ($(ABI),yes)
-    CFLAGS += -DSIZE=80
-  endif
+  CFLAGS += -mllvm -enzyme-new-cache=0
+endif
+
+
+ifeq ($(MINCUT),yes)
+  CFLAGS += -mllvm -enzyme-mincut-cache=1
+else
+  CFLAGS += -mllvm -enzyme-mincut-cache=0
 endif
 
 ifeq ($(AA),yes)
@@ -116,8 +106,8 @@ else
   CFLAGS += -mllvm -enzyme-phi-restructure=0
 endif
 
-ifeq ($(COALESE),yes)
-  CFLAGS += -mllvm -enzyme-coalese
+ifeq ($(INLINE),yes)
+  CFLAGS += -DALWAYS_INLINE=1
 endif
 
 ifeq ($(CACHELICM),yes)
@@ -132,18 +122,17 @@ endif
 # Targets to Build
 #===============================================================================
 
-$(program): $(obj) lbm_kernel.cu Makefile
+$(program): $(obj) rsbench.cuh Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
-%.o: %.cc lbm_kernel.cu Makefile
+%.o: %.cu rsbench.cuh Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
-
-%.o: %.cu lbm_kernel.cu Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
-
 
 clean:
 	rm -rf rsbench $(obj)
+
+edit:
+	vim -p $(source) rsbench.cuh
 
 run:
 	./rsbench
