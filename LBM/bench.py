@@ -58,11 +58,11 @@ def merge(a, b):
     return c
 
 def ablation():
-    start = {"runs": 5, "sizes": [2], "OPTIMIZE": "yes", "VERIFY": "no"}
+    start = {"runs": 5, "sizes": [150], "OPTIMIZE": "yes", "VERIFY": "no"}
     run(**(merge(start,{"FORWARD":"yes", "NEWCACHE":"yes", "ALLOCATOR":"yes", "ABI":"yes"})))
     run(**(merge(start,{"FORWARD":"no", "NEWCACHE":"yes", "ALLOCATOR":"yes", "ABI":"yes"})))
     run(**(merge(start,{"FORWARD":"no", "NEWCACHE":"yes", "ALLOCATOR":"no", "ABI":"yes"})))
-    run(**(merge(start,{"FORWARD":"no", "NEWCACHE":"no", "ALLOCATOR":"no", "ABI":"no"})))
+    # run(**(merge(start,{"FORWARD":"no", "NEWCACHE":"no", "ALLOCATOR":"no", "ABI":"no"})))
 
 def scaling():
     start = {"runs": 5, "sizes": list(range(50,650,50)), "OPTIMIZE": "yes", "VERIFY":"no"}
