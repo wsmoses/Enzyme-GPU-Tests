@@ -1,6 +1,8 @@
 import os
 import subprocess 
 
+DEVICE=os.getenv("DEVICE", "1")
+
 def run(OPTIMIZE, FORWARD, INLINE, NEWCACHE, MINCACHE, AA, PHISTRUCT, TEMPLATIZE, DYN, VERIFY, COALESE, CACHELICM, SPECPHI, SELECT, runs, sizes):
     comp = subprocess.run(f'VERIFY={VERIFY} OPTIMIZE={OPTIMIZE} FORWARD={FORWARD} DYN={DYN} INLINE={INLINE} COALESE={COALESE} CACHELICM={CACHELICM} SPECPHI={SPECPHI} SELECT={SELECT} NEWCACHE={NEWCACHE} MINCACHE={MINCACHE} AA={AA} PHISTRUCT={PHISTRUCT} TEMPLATIZE={TEMPLATIZE} make -B -j', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f'VERIFY={VERIFY} OPTIMIZE={OPTIMIZE} FORWARD={FORWARD} DYN={DYN} INLINE={INLINE}  COALESE={COALESE} CACHELICM={CACHELICM} SPECPHI={SPECPHI} SELECT={SELECT} NEWCACHE={NEWCACHE} MINCACHE={MINCACHE} AA={AA} PHISTRUCT={PHISTRUCT} TEMPLATIZE={TEMPLATIZE} make -B -j')
@@ -12,9 +14,9 @@ def run(OPTIMIZE, FORWARD, INLINE, NEWCACHE, MINCACHE, AA, PHISTRUCT, TEMPLATIZE
         res = []
         for i in range(runs):
             if VERIFY == "yes":
-                res.append(os.popen("CUDA_VISIBLE_DEVICES=1 ./XSBench -m event -k 0 -l " + str(size) + "| grep \"der=[0-9\.]*\" -o | grep -e \"[0-9\.]*\" -o").read().strip())
+                res.append(os.popen(f"CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES={DEVICE} ./XSBench -m event -k 0 -l " + str(size) + "| grep \"der=[0-9\.]*\" -o | grep -e \"[0-9\.]*\" -o").read().strip())
             else:
-                res.append(os.popen("CUDA_VISIBLE_DEVICES=1 ./XSBench -m event -k 0 -l " + str(size) + "| grep \"Runtime\" | grep -e \"[0-9\.]*\" -o").read().strip())
+                res.append(os.popen(f"CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES={DEVICE} ./XSBench -m event -k 0 -l " + str(size) + "| grep \"Runtime\" | grep -e \"[0-9\.]*\" -o").read().strip())
         out[size] = res
         print(f'VERIFY={VERIFY} OPTIMIZE={OPTIMIZE} FORWARD={FORWARD} DYN={DYN} INLINE={INLINE} COALESE={COALESE} CACHELICM={CACHELICM} SPECPHI={SPECPHI} SELECT={SELECT} NEWCACHE={NEWCACHE} MINCACHE={MINCACHE} AA={AA} PHISTRUCT={PHISTRUCT} TEMPLATIZE={TEMPLATIZE} size={size}', "\t", "\t".join(res), flush=True)
     return res
