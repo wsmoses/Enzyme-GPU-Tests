@@ -3968,7 +3968,11 @@ void CalcSoundSpeedForElems_device(Real_t& vnewc,
                                    Real_t &bvc,
                                    Real_t ss4o3,
                                    Index_t nz,
+                                   #ifdef RESTRICT
                                    Real_t *__restrict__ ss,
+                                   #else
+                                   Real_t *ss,
+                                   #endif
                                    Index_t iz)
 {
   Real_t ssTmp = (pbvc * enewc + vnewc * vnewc *
@@ -3988,10 +3992,19 @@ __forceinline__
 void ApplyMaterialPropertiesForElems_device(
     Real_t& eosvmin,
     Real_t& eosvmax,
+    #ifdef RESTRICT
     Real_t* __restrict__ vnew,
     Real_t *__restrict__ v,
+    #else
+    Real_t*  vnew,
+    Real_t *v,
+    #endif
     Real_t& vnewc,
+    #ifdef RESTRICT
     Index_t* __restrict__ bad_vol,
+    #else
+    Index_t* bad_vol,
+    #endif
     Index_t zn)
 {
   vnewc = vnew[zn] ;
@@ -4217,27 +4230,55 @@ void Inner_ApplyMaterialPropertiesAndUpdateVolume_kernel(
         Real_t rho0,
         Real_t e_cut,
         Real_t emin,
+        #ifdef RESTRICT
         Real_t* __restrict__ ql,
         Real_t* __restrict__ qq,
         Real_t* __restrict__ vnew,
         Real_t* __restrict__ v,
+        #else
+        Real_t* ql,
+        Real_t* qq,
+        Real_t* vnew,
+        Real_t* v,
+        #endif
         Real_t pmin,
         Real_t p_cut,
         Real_t q_cut,
         Real_t eosvmin,
         Real_t eosvmax,
+        #ifdef RESTRICT
         Index_t* __restrict__ regElemlist,
         Real_t* __restrict__ e,
         Real_t* __restrict__ delv,
         Real_t* __restrict__ p,
         Real_t* __restrict__ q,
+        #else
+        Index_t* regElemlist,
+        Real_t* e,
+        Real_t* delv,
+        Real_t* p,
+        Real_t* q,
+        #endif
         Real_t ss4o3,
+        #ifdef RESTRICT
         Real_t* __restrict__ ss,
+        #else
+        Real_t* ss,
+        #endif
         Real_t v_cut,
-        Index_t* __restrict__ bad_vol, 
+        #ifdef RESTRICT
+        Index_t* __restrict__ bad_vol,
+        #else
+        Index_t* bad_vol,
+        #endif
         const Int_t cost,
+        #ifdef RESTRICT
         const Index_t* __restrict__ regCSR,
         const Index_t* __restrict__ regReps,
+        #else
+        const Index_t* regCSR,
+        const Index_t* regReps,
+        #endif
 	      const Index_t  numReg)
 {
 
@@ -4364,25 +4405,49 @@ void ApplyMaterialPropertiesAndUpdateVolume_kernel(
     Real_t rho0,
     Real_t e_cut,
     Real_t emin,
+    #ifdef RESTRICT
     Real_t* __restrict__ ql,
     Real_t* __restrict__ qq,
     Real_t* __restrict__ vnew,
     Real_t* __restrict__ v,
+    #else
+    Real_t* ql,
+    Real_t* qq,
+    Real_t* vnew,
+    Real_t* v,
+    #endif
     Real_t pmin,
     Real_t p_cut,
     Real_t q_cut,
     Real_t eosvmin,
     Real_t eosvmax,
+    #ifdef RESTRICT
     Index_t* __restrict__ regElemlist,
     Real_t* __restrict__ e,
     Real_t* __restrict__ d_e,
     Real_t* __restrict__ delv,
     Real_t* __restrict__ p,
     Real_t* __restrict__ q,
+    #else
+    Index_t* regElemlist,
+    Real_t* e,
+    Real_t* d_e,
+    Real_t* delv,
+    Real_t* p,
+    Real_t* q,
+    #endif
     Real_t ss4o3,
+    #ifdef RESTRICT
     Real_t* __restrict__ ss,
+    #else
+    Real_t* ss,
+    #endif
     Real_t v_cut,
+    #ifdef RESTRICT
     Index_t* __restrict__ bad_vol,
+    #else
+    Index_t* bad_vol,
+    #endif
     const Int_t cost,
     const Index_t* regCSR,
     const Index_t* regReps,
@@ -4490,9 +4555,9 @@ void ApplyMaterialPropertiesAndUpdateVolume(Domain *domain)
     for (int i=0; i<N2; i++)
       wrt[i] = 1.0;
       
-    printf("setting out[0..%d]\n", N2);
+    /*printf("setting out[0..%d]\n", N2);*/
     cudaMemcpy(domain->d_e.raw(), &wrt, N2 * sizeof(Real_t), cudaMemcpyHostToDevice);
-    printf("set out\n");
+    /*printf("set out\n");*/
     #endif
 
     #endif
@@ -4582,7 +4647,7 @@ void ApplyMaterialPropertiesAndUpdateVolume(Domain *domain)
     cudaMemcpy(out, domain->d_e.raw(), N*sizeof(Real_t), cudaMemcpyDeviceToHost);
     for (int i=0; i<N; i++) {
       if (abs(out[i]) > 1e-6)
-        printf("out[%i]=%f\n", i, out[i]);
+        printf("out=%f\n", i, out[i]);
     }
     delete[] out;
     #endif
