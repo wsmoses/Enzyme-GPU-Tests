@@ -1,0 +1,31 @@
+# YAML 1.2
+---
+authors: 
+  -
+    affiliation: MIT
+    family-names: Moses
+    given-names: "William S."
+    orcid: "https://orcid.org/0000-0003-2627-0642"
+  -
+    affiliation: MIT
+    family-names: Churavy
+    given-names: Valentin
+  -
+    family-names: Paehler
+    given-names: Ludger
+  -
+    family-names: Hueckelheim
+    given-names: Jan
+  -
+    family-names: "Hari Krishna Narayanan"
+    given-names: Sri
+  -
+    family-names: Schanen
+    given-names: Michel
+  -
+    family-names: Doerfert
+    given-names: Johannes
+cff-version: "1.1.0"
+message: "If you use this software, please cite it using these metadata."
+title: "Reverse-Mode Automatic Differentiation and Optimization of GPU Kernels via Enzyme"
+...
