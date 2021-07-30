@@ -1,4 +1,6 @@
 # Enzyme-GPU-Tests
+[![DOI](https://zenodo.org/badge/369262862.svg)](https://zenodo.org/badge/latestdoi/369262862)
+
 This repo contains the benchmarks for Enzyme on GPU's.
 
 If Enzyme, or part of this repository is useful to you, please cite:
