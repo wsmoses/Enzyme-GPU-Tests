@@ -1,7 +1,6 @@
 cff-version: 1.2.0
 message: If you use this software, please cite it using the following metadata.
 title: Reverse-Mode Automatic Differentiation and Optimization of GPU Kernels via Enzyme
-
 authors: 
 - family-names: Moses
   given-names: William S.
@@ -20,3 +19,12 @@ authors:
   given-names: Michel
 - family-names: Doerfert
   given-names: Johannes
+keywords:
+- Enzyme
+- GPU
+- CUDA
+- ROCm
+- C++
+- Julia
+- Automatic Differentiation
+version: 0.1.0
