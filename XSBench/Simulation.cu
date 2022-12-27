@@ -844,7 +844,8 @@ unsigned long long run_event_based_simulation_optimization_4(Inputs in, Simulati
 	const char * optimization_name = "Optimization 4 - All Material Lookup Kernels + Material Sort";
 	
 	if( mype == 0)	printf("Simulation Kernel:\"%s\"\n", optimization_name);
-	
+
+#if 0
 	////////////////////////////////////////////////////////////////////////////////
 	// Allocate Additional Data Structures Needed by Optimized Kernel
 	////////////////////////////////////////////////////////////////////////////////
@@ -906,6 +907,8 @@ unsigned long long run_event_based_simulation_optimization_4(Inputs in, Simulati
 	gpuErrchk( cudaDeviceSynchronize() );
 
 	return verification_scalar;
+#endif
+    return 0;
 }
 
 __global__ void xs_lookup_kernel_optimization_4(Inputs in, SimulationData GSD, int m, int n_lookups, int offset )
@@ -985,7 +988,7 @@ unsigned long long run_event_based_simulation_optimization_5(Inputs in, Simulati
 	const char * optimization_name = "Optimization 5 - Fuel/No Fuel Lookup Kernels + Fuel/No Fuel Sort";
 	
 	if( mype == 0)	printf("Simulation Kernel:\"%s\"\n", optimization_name);
-	
+#if 0	
 	////////////////////////////////////////////////////////////////////////////////
 	// Allocate Additional Data Structures Needed by Optimized Kernel
 	////////////////////////////////////////////////////////////////////////////////
@@ -1043,6 +1046,8 @@ unsigned long long run_event_based_simulation_optimization_5(Inputs in, Simulati
 	gpuErrchk( cudaDeviceSynchronize() );
 
 	return verification_scalar;
+#endif
+    return 0;
 }
 
 __global__ void xs_lookup_kernel_optimization_5(Inputs in, SimulationData GSD, int n_lookups, int offset )
@@ -1112,7 +1117,7 @@ __global__ void xs_lookup_kernel_optimization_5(Inputs in, SimulationData GSD, i
 unsigned long long run_event_based_simulation_optimization_6(Inputs in, SimulationData GSD, int mype)
 {
 	const char * optimization_name = "Optimization 6 - Material & Energy Sorts + Material-specific Kernels";
-	
+#if 0	
 	if( mype == 0)	printf("Simulation Kernel:\"%s\"\n", optimization_name);
 	
 	////////////////////////////////////////////////////////////////////////////////
@@ -1184,4 +1189,6 @@ unsigned long long run_event_based_simulation_optimization_6(Inputs in, Simulati
 	gpuErrchk( cudaDeviceSynchronize() );
 
 	return verification_scalar;
+#endif
+    return 0;
 }
