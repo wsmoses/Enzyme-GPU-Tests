@@ -1,19 +1,15 @@
 #===============================================================================
 # User Options
 #===============================================================================
-CUDA_PATH ?= /usr/local/cuda-11.2
-
-ENZYME_PATH ?= /home/wmoses/git/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
-CLANG_PATH ?= /mnt/sabrent/wmoses/llvm13/buildallfast/bin/clang++
-
-# ENZYME_PATH ?= /home/wmoses/git/Enzyme/enzyme/build13D/Enzyme/ClangEnzyme-13.so
+CUDA_PATH ?= /usr/local/cuda-11.7
+CLANG_PATH ?= /home/wmoses/git/Polygeist/build/bin/cgeist -resource-dir /home/wmoses/git/Polygeist/mlir-build/lib/clang/16.0.0
 # CLANG_PATH ?= /mnt/sabrent/wmoses/llvm13/buildall/bin/clang++
 
 SM_VERSION  = 60
 
 
 OPTIMIZE    ?= yes
-FORWARD     ?= no
+FORWARD     ?= yes
 INLINE      ?= yes
 NEWCACHE    ?= yes
 MINCACHE    ?= yes
@@ -57,12 +53,10 @@ obj = $(source:.cu=.o)
 
 
 # Linker Flags
-LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm
+LDFLAGS = 
 
 CC := $(CLANG_PATH)
-CFLAGS := -fno-experimental-new-pass-manager --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) 
-
-CFLAGS += -mllvm -simplifycfg-sink-common=0
+CFLAGS := --function=* -struct-abi=1 --cpuify=distribute --cuda-lower --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11
 
 # Debug Flags
 ifeq ($(DEBUG),yes)
@@ -90,61 +84,6 @@ endif
 ifeq ($(INLINE),yes)
   CFLAGS += -DALWAYS_INLINE=1
 endif
-
-# Optimization Flags
-ifeq ($(NEWCACHE),yes)
-  CFLAGS += -mllvm -enzyme-new-cache=1
-else
-  CFLAGS += -mllvm -enzyme-new-cache=0
-endif
-
-
-ifeq ($(DYN),yes)
-  CFLAGS += -mllvm -enzyme-inactive-dynamic=1
-else
-  CFLAGS += -mllvm -enzyme-inactive-dynamic=0
-endif
-
-ifeq ($(MINCACHE),yes)
-  CFLAGS += -mllvm -enzyme-mincut-cache=1
-else
-  CFLAGS += -mllvm -enzyme-mincut-cache=0
-endif
-
-ifeq ($(SELECT),yes)
-  CFLAGS += -mllvm -enzyme-select-opt=1
-else
-  CFLAGS += -mllvm -enzyme-select-opt=0
-endif
-
-ifeq ($(SPECPHI),yes)
-  CFLAGS += -mllvm -enzyme-speculate-phis=1
-else
-  CFLAGS += -mllvm -enzyme-speculate-phis=0
-endif
-
-ifeq ($(CACHELICM),yes)
-  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=1
-else
-  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=0
-endif
-
-ifeq ($(AA),yes)
-  CFLAGS += -mllvm -enzyme-aggressive-aa=1
-else
-  CFLAGS += -mllvm -enzyme-aggressive-aa=0
-endif
-
-ifeq ($(COALESE),yes)
-  CFLAGS += -mllvm -enzyme-coalese
-endif
-
-ifeq ($(PHISTRUCT),yes)
-  CFLAGS += -mllvm -enzyme-phi-restructure=1
-else
-  CFLAGS += -mllvm -enzyme-phi-restructure=0
-endif
-
 
 ifeq ($(TEMPLATIZE),yes)
   CFLAGS += -DTEMPLATIZE=1
