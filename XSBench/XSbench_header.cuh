@@ -8,6 +8,9 @@
 #include<assert.h>
 #include<cuda.h>
 #include <thrust/reduce.h>
+#include <thrust/sort.h>
+#include <thrust/count.h>
+#include <thrust/partition.h>
 #include<stdint.h>
 #include <chrono> 
 
