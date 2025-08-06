@@ -24,6 +24,10 @@
 #include <mcuda.h>
 #endif
 
+#include <errno.h>
+
+#include <assert.h>
+
 #define DFL1 (1.0f/ 3.0f)
 #define DFL2 (1.0f/18.0f)
 #define DFL3 (1.0f/36.0f)
@@ -393,6 +397,7 @@ void LBM_showGridStatistics( LBM_Grid grid ) {
 
 static void storeValue( FILE* file, OUTPUT_PRECISION* v ) {
 	const int litteBigEndianTest = 1;
+	assert(file);
 	if( (*((unsigned char*) &litteBigEndianTest)) == 0 ) {         /* big endian */
 		const char* vPtr = (char*) v;
 		char buffer[sizeof( OUTPUT_PRECISION )];
@@ -415,6 +420,10 @@ void LBM_storeVelocityField( LBM_Grid grid, const char* filename,
 	OUTPUT_PRECISION rho, ux, uy, uz;
 
 	FILE* file = fopen( filename, (binary ? "wb" : "w") );
+	if (!file) {
+           fprintf(stderr, "can't open %s: %s\n", filename, strerror(errno));
+	   exit(1);
+	}
 
 	SWEEP_VAR
 	SWEEP_START(0,0,0,SIZE_X,SIZE_Y,SIZE_Z)

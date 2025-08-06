@@ -5,15 +5,16 @@
 CUDA_PATH ?= /usr/local/cuda-12.9
 
 ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/build/Enzyme/ClangEnzyme-22.so
-CLANG_PATH ?= $(HOME)/git/llvm-project/build/bin/clang++
-LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JAX/bazel-bin/libRaise.so
+CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
+LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
 
+export REACTANT_DEBUG=1
 export PATH := $(CUDA_PATH)/bin:$(PATH)
 export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
-OPTIMIZE    ?= yes
+OPTIMIZE    ?= no # yes
 
 NEWCACHE    ?= yes
 AA          ?= no
@@ -25,7 +26,7 @@ ABI         ?= no
 ALLOCATOR   ?= no
 VERIFY      ?= no
 
-DEBUG       = no
+DEBUG       = yes
 PROFILE     = no
 SM_VERSION  = 120
 
@@ -56,8 +57,8 @@ LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) -
 
 # Debug Flags
 ifeq ($(DEBUG),yes)
-  CFLAGS += -g -G
-  LDFLAGS += -g -G
+  CFLAGS += -g
+  LDFLAGS += -g
 endif
 
 ifeq ($(ALLOCATOR),yes)
@@ -143,4 +144,4 @@ clean:
 	rm -rf $(program) *.o *.re_export
 
 run: $(program)
-	./$(program) 10
+	./$(program) 10 -o out.txt
