@@ -4,7 +4,7 @@
 
 CUDA_PATH ?= /usr/local/cuda-12.9
 
-ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/build/Enzyme/ClangEnzyme-22.so
+ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/ClangEnzyme-22.so
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/

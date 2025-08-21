@@ -5024,7 +5024,7 @@ void CalcTimeConstraintsForElems(Domain* domain)
     const int dimBlock = 128;
     int dimGrid=std::min(max_dimGrid,PAD_DIV(length,dimBlock));
 
-    cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
+    // cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
 
     Vector_d<Real_t>* dev_mindtcourant= Allocator< Vector_d<Real_t> >::allocate(dimGrid);
     Vector_d<Real_t>* dev_mindthydro  = Allocator< Vector_d<Real_t> >::allocate(dimGrid);
