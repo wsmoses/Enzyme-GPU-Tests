@@ -9,6 +9,7 @@ CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
 
+export CUDA_HOME := $(CUDA_PATH)
 export PATH := $(CUDA_PATH)/bin:$(PATH)
 export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
