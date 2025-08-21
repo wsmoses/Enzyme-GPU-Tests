@@ -11,6 +11,7 @@
 #include <thrust/reduce.h>
 #include <thrust/count.h>
 #include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 #include <chrono> 
 
 #define PI 3.14159265359

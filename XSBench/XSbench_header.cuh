@@ -11,6 +11,7 @@
 #include <thrust/sort.h>
 #include <thrust/count.h>
 #include <thrust/partition.h>
+#include <thrust/device_ptr.h>
 #include<stdint.h>
 #include <chrono> 
 
