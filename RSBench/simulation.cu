@@ -39,7 +39,7 @@ void run_event_based_simulation(Input input, SimulationData GSD, SimulationData 
 	////////////////////////////////////////////////////////////////////////////////
 	printf("Reducing verification results...\n");
 
-	unsigned long verification_scalar = thrust::reduce(GSD.verification, GSD.verification + input.lookups, 0);
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + input.lookups, 0);
 
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
@@ -724,16 +724,16 @@ void run_event_based_simulation_optimization_1(Input in, SimulationData GSD, uns
 	// Count the number of fuel material lookups that need to be performed (fuel id = 0)
 	int n_lookups_per_material[12];
 	for( int m = 0; m < 12; m++ )
-		n_lookups_per_material[m] = thrust::count(GSD.mat_samples, GSD.mat_samples + in.lookups, m);
+		n_lookups_per_material[m] = thrust::count(thrust::device, GSD.mat_samples, GSD.mat_samples + in.lookups, m);
 
 	// Sort by material first
-	thrust::sort_by_key(GSD.mat_samples, GSD.mat_samples + in.lookups, GSD.p_energy_samples);
+	thrust::sort_by_key(thrust::device, GSD.mat_samples, GSD.mat_samples + in.lookups, GSD.p_energy_samples);
 
 	// Now, sort each material by energy
 	int offset = 0;
 	for( int m = 0; m < 12; m++ )
 	{
-		thrust::sort_by_key(GSD.p_energy_samples + offset, GSD.p_energy_samples + offset + n_lookups_per_material[m], GSD.mat_samples + offset);
+		thrust::sort_by_key(thrust::device, GSD.p_energy_samples + offset, GSD.p_energy_samples + offset + n_lookups_per_material[m], GSD.mat_samples + offset);
 		offset += n_lookups_per_material[m];
 	}
 	
@@ -754,7 +754,7 @@ void run_event_based_simulation_optimization_1(Input in, SimulationData GSD, uns
 	////////////////////////////////////////////////////////////////////////////////
 	printf("Reducing verification results...\n");
 
-	unsigned long verification_scalar = thrust::reduce(GSD.verification, GSD.verification + in.lookups, 0);
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 
