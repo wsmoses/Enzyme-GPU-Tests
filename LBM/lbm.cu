@@ -120,7 +120,7 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
 }
 
 
-//extern void __enzyme_autodiff(void *, ...);
+extern void __enzyme_autodiff(void *, ...);
 
 __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb ) {
 
@@ -143,7 +143,7 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 
 	cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float), cudaMemcpyDeviceToHost);
 #endif
-	//__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
+	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
 #ifdef ALLOCATOR
 	delete A;
 #endif

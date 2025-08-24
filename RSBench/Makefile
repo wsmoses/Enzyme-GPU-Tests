@@ -144,4 +144,4 @@ clean:
 # 	vim -p $(source) rsbench.cuh
 
 run:
-	./$(program)
+	./$(program) -m event

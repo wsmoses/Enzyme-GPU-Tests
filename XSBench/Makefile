@@ -179,4 +179,4 @@ edit:
 	vim -p $(source) XSbench_header.cuh
 
 run:
-	./$(program)
+	./$(program) -m event
