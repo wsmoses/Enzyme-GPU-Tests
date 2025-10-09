@@ -1,5 +1,87 @@
 #include "XSbench_header.cuh"
 
+
+__global__ void init_data(unsigned long* data, size_t n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        data[idx] = idx + 1;  // Fill with 1, 2, 3, ...
+    }
+}
+
+#include <cub/cub.cuh>
+
+//int main() {
+//    const size_t n = 17000000;
+//    unsigned long* d_data;
+//    cudaMalloc(&d_data, n * sizeof(unsigned long));
+//
+//    init_data<<<(n+255)/256, 256>>>(d_data, n);
+//    cudaDeviceSynchronize();
+//
+//    // Direct CUB call - this is what thrust::reduce uses
+//    unsigned long* d_result;
+//    cudaMalloc(&d_result, sizeof(unsigned long));
+//
+//    void* d_temp_storage = nullptr;
+//    size_t temp_storage_bytes = 0;
+//
+//    // First call to get required temp storage size
+//    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
+//                           d_data, d_result, n);
+//
+//    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+//
+//    // Actual reduction
+//    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
+//                           d_data, d_result, n);
+//
+//    unsigned long result;
+//    cudaMemcpy(&result, d_result, sizeof(unsigned long), cudaMemcpyDeviceToHost);
+//
+//    printf("RES %lu\n", result);
+//
+//    cudaFree(d_temp_storage);
+//    cudaFree(d_result);
+//    cudaFree(d_data);
+//    return 0;
+//}
+
+int main() {
+    
+    const size_t n = 17000000;
+    unsigned long* d_data;
+    cudaMalloc(&d_data, n * sizeof(unsigned long));
+    cudaMemset(d_data, 9, n * sizeof(unsigned long));
+    
+//    int device;
+//cudaGetDevice(&device);
+
+//    init_data<<<(n+255)/256, 256>>>(d_data, n);
+      cudaDeviceSynchronize();
+//    
+//    cudaDeviceProp props;
+//cudaGetDeviceProperties(&props, device);  // 0 for default device
+//
+//printf("Maximum threads per block: %d\n", props.maxThreadsPerBlock);
+//printf("Maximum block dimensions: (%d, %d, %d)\n",
+//       props.maxThreadsDim[0], props.maxThreadsDim[1], props.maxThreadsDim[2]);
+//printf("Maximum grid dimensions: (%d, %d, %d)\n",
+//       props.maxGridSize[0], props.maxGridSize[1], props.maxGridSize[2]);
+//printf("Warp size: %d\n", props.warpSize);
+
+        unsigned long result = thrust::reduce(
+	    thrust::device,
+            d_data, 
+            d_data + n, 
+            0UL
+        );
+    
+// 	printf("RES %lu\n", result);
+    cudaFree(d_data);
+    return 0;
+}
+
+/*
 int main( int argc, char* argv[] )
 {
 	// =====================================================================
@@ -106,3 +188,4 @@ int main( int argc, char* argv[] )
 
 	return is_invalid_result;
 }
+*/

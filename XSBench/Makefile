@@ -46,13 +46,14 @@ DYN ?= yes
 
 program = XSBench
 
-source = \
-Main.cu \
-io.cu \
-Simulation.cu \
-GridInit.cu \
-XSutils.cu \
-Materials.cu
+source = Main.cu
+#source = \
+#Main.cu \
+#GridInit.cu \
+#Simulation.cu \
+#io.cu \
+#XSutils.cu \
+#Materials.cu
 
 obj = $(source:.cu=.o)
 
