@@ -26,7 +26,7 @@ ABI         ?= no
 ALLOCATOR   ?= no
 VERIFY      ?= no
 
-DEBUG       = yes
+DEBUG       = no
 PROFILE     = no
 SM_VERSION  = 120
 
