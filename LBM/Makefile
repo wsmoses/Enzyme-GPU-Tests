@@ -4,6 +4,8 @@
 
 CUDA_PATH ?= /usr/local/cuda-12.9
 
+EMBEDDED_CLANG ?= no
+
 ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/ClangEnzyme-22.so
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
@@ -49,7 +51,13 @@ CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I $(CUDA_PATH)/include -I .
 
 
 CC := $(CLANG_PATH)
-CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
+
+ENZYME_LOAD_FLAGS :=
+ifeq ($(EMBEDDED_CLANG),no)
+  ENZYME_LOAD_FLAGS += -fplugin=$(ENZYME_PATH)
+endif
+
+CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
   
 
 # Linker Flags
