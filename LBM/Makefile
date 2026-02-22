@@ -149,7 +149,7 @@ $(program): $(source) Makefile
 	$(CC) $(CFLAGS) args.c lbm.cu lbm_kernel.cu parboil_cuda.c main.cc $(LDFLAGS) -o $@
 
 clean:
-	rm -rf $(program) *.o *.re_export
+	rm -f args.c.re_export lbm lbm.cu.re_export lbm_kernel.cu.re_export main.cc.re_export out.txt parboil_cuda.c.re_export 
 
 run: $(program)
 	./$(program) 10 -o out.txt
