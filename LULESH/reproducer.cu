@@ -165,7 +165,6 @@ void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8],
       hy=s0*yn[0]+s1*yn[1]+s2*yn[2]+s3*yn[3]+s4*yn[4]+s5*yn[5]+s6*yn[6]+s7*yn[7]; \
       hz=s0*zn[0]+s1*zn[1]+s2*zn[2]+s3*zn[3]+s4*zn[4]+s5*zn[5]+s6*zn[6]+s7*zn[7]; \
       for(int i=0;i<8;i++) hg[i][M]=Real_t(s0)-vi*(dvdx[i]*hx+dvdy[i]*hy+dvdz[i]*hz);
-    // Note: the s0..s7 signs vary per mode; using exact LULESH sign patterns
     MODE(0, 1, 1,-1,-1,-1,-1, 1, 1)
     MODE(1, 1,-1,-1, 1,-1, 1, 1,-1)
     MODE(2, 1,-1, 1,-1, 1,-1, 1,-1)
@@ -194,11 +193,6 @@ void CalcElemFBHourglassForce(Real_t *xd, Real_t *yd, Real_t *zd,
    #undef DO_COORD
 }
 
-// =========================================================================
-// THE KERNEL — after inlining all __forceinline__ functions above, this
-// becomes one massive basic block with ~500+ arithmetic operations and
-// scatter-gather memory accesses that cause ISL to OOM.
-// =========================================================================
 __global__ __launch_bounds__(64, 4)
 void CalcVolumeForceForElems_kernel(
     const Real_t* __restrict__ volo,
