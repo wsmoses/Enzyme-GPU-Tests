@@ -159,7 +159,6 @@ void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8],
                         Real_t hg[8][4], Real_t vi)
 {
     Real_t hx, hy, hz;
-    // Each mode: compute 3 weighted sums of 8 nodes, then 8 hourglass entries
     #define MODE(M, s0,s1,s2,s3,s4,s5,s6,s7) \
       hx=s0*xn[0]+s1*xn[1]+s2*xn[2]+s3*xn[3]+s4*xn[4]+s5*xn[5]+s6*xn[6]+s7*xn[7]; \
       hy=s0*yn[0]+s1*yn[1]+s2*yn[2]+s3*yn[3]+s4*yn[4]+s5*yn[5]+s6*yn[6]+s7*yn[7]; \
