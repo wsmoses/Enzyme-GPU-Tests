@@ -22,9 +22,9 @@ unsigned long long run_event_based_simulation_baseline(Inputs in, SimulationData
 	int nthreads = 32;
 	int nblocks = ceil( (double) in.lookups / 32.0);
 
-	xs_lookup_kernel_baseline<<<nblocks, nthreads>>>( in, GSD );
-	gpuErrchk( cudaPeekAtLastError() );
-	gpuErrchk( cudaDeviceSynchronize() );
+	// xs_lookup_kernel_baseline<<<nblocks, nthreads>>>( in, GSD );
+	// gpuErrchk( cudaPeekAtLastError() );
+	// gpuErrchk( cudaDeviceSynchronize() );
 	
 	////////////////////////////////////////////////////////////////////////////////
 	// Reduce Verification Results
@@ -47,10 +47,12 @@ unsigned long long run_event_based_simulation_baseline(Inputs in, SimulationData
 	printf("der=%f\n", here[0]);
 	#endif
 	#endif
+	printf("About to call thrust::reduce\n");
 
-	unsigned long verification_scalar = thrust::reduce(thrust::device_ptr<unsigned long>(GSD.verification), thrust::device_ptr<unsigned long>(GSD.verification) + in.lookups, 0);
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
+	printf("thrust::reduce finished\n");
 
 	return verification_scalar;
 }
@@ -519,11 +521,16 @@ unsigned long long run_event_based_simulation_optimization_1(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
         unsigned long verification_scalar = thrust::reduce(
             thrust::device_ptr<unsigned long>(GSD.verification),
             thrust::device_ptr<unsigned long>(GSD.verification + in.lookups),
             0);
         gpuErrchk( cudaPeekAtLastError() );
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+	gpuErrchk( cudaPeekAtLastError() );
+>>>>>>> Stashed changes
 	gpuErrchk( cudaDeviceSynchronize() );
 
 	return verification_scalar;
@@ -657,9 +664,13 @@ unsigned long long run_event_based_simulation_optimization_2(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
 	unsigned long verification_scalar = thrust::reduce(
 		thrust::device_ptr<unsigned long>(GSD.verification), 
 		thrust::device_ptr<unsigned long>(GSD.verification + in.lookups), 0);
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+>>>>>>> Stashed changes
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 
@@ -775,9 +786,13 @@ unsigned long long run_event_based_simulation_optimization_3(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
 	unsigned long verification_scalar = thrust::reduce(
 		thrust::device_ptr<unsigned long>(GSD.verification),
 		thrust::device_ptr<unsigned long>(GSD.verification + in.lookups), 0);
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+>>>>>>> Stashed changes
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 
@@ -913,9 +928,13 @@ unsigned long long run_event_based_simulation_optimization_4(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
 	unsigned long verification_scalar = thrust::reduce(
 		thrust::device_ptr<unsigned long>(GSD.verification),
 		thrust::device_ptr<unsigned long>(GSD.verification + in.lookups), 0);
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+>>>>>>> Stashed changes
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 
@@ -1057,9 +1076,13 @@ unsigned long long run_event_based_simulation_optimization_5(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
 	unsigned long verification_scalar = thrust::reduce(
 		thrust::device_ptr<unsigned long>(GSD.verification),
 		thrust::device_ptr<unsigned long>(GSD.verification + in.lookups), 0);
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+>>>>>>> Stashed changes
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 
@@ -1208,9 +1231,13 @@ unsigned long long run_event_based_simulation_optimization_6(Inputs in, Simulati
 	////////////////////////////////////////////////////////////////////////////////
 	if( mype == 0)	printf("Reducing verification results...\n");
 
+<<<<<<< Updated upstream
 	unsigned long verification_scalar = thrust::reduce(
 		thrust::device_ptr<unsigned long>(GSD.verification),
 		thrust::device_ptr<unsigned long>(GSD.verification + in.lookups), 0);
+=======
+	unsigned long verification_scalar = thrust::reduce(thrust::device, GSD.verification, GSD.verification + in.lookups, 0);
+>>>>>>> Stashed changes
 	gpuErrchk( cudaPeekAtLastError() );
 	gpuErrchk( cudaDeviceSynchronize() );
 

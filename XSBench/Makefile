@@ -62,17 +62,18 @@ obj = $(source:.cu=.o)
 
 
 # Linker Flags
-LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) # -lReactantExtra
+# LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) -lReactantExtra
+LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm
 
 CC := $(CLANG_PATH)
-CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
+CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH) -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-device-lib -mllvm $(CUDA_PATH)/nvvm/libdevice/libdevice.10.bc -x cuda -fno-exceptions
 
 #CFLAGS += -mllvm -simplifycfg-sink-common=0
 
 # Debug Flags
 ifeq ($(DEBUG),yes)
-	CFLAGS += -g -G
-	LDFLAGS  += -g -G
+	CFLAGS += -g
+	LDFLAGS  += -g
 endif
 
 # Profiling Flags
