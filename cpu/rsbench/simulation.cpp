@@ -258,25 +258,23 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
   // if (w.start == 0)
   //	printf("start=%d\n", w.start);
   //  Loop over Poles within window, add contributions
-  int i = w.start;
-  for (int i = w.start; i < w.end; i++) {
-    // nuc was 58
-    Pole pole = poles[nuc * max_num_poles + i];
-    // printf("here: %d\n",  nuc);
+  int i = w.start + 1;
+  // nuc was 58
+  Pole pole = poles[nuc * max_num_poles + i];
+  // printf("here: %d\n",  nuc);
 
-    // Prep Z
-    RSComplex E_c = {E, 0};
-    RSComplex dopp_c = {dopp, 0};
-    RSComplex Z = c_mul(c_sub(E_c, pole.MP_EA), dopp_c);
+  // Prep Z
+  RSComplex E_c = {E, 0};
+  RSComplex dopp_c = {dopp, 0};
+  RSComplex Z = c_mul(c_sub(E_c, pole.MP_EA), dopp_c);
 
-    // Evaluate Fadeeva Function
-    RSComplex faddeeva = fast_nuclear_W(Z);
+  // Evaluate Fadeeva Function
+  RSComplex faddeeva = fast_nuclear_W(Z);
 
-    // Update W
-    sigT += faddeeva.r;
-  }
+  // Update W
+  sigT += faddeeva.r;
 
-  sigE = sigT - sigA;
+  sigE = sigT + sigA;
 
   micro_xs[0] = sigT;
   micro_xs[1] = sigA;
