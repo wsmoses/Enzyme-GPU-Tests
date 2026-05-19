@@ -168,20 +168,16 @@ __attribute__((always_inline)) RSComplex fast_nuclear_W(RSComplex Z) {
   if (c_abs(Z) < 6.0) {
     // Precomputed parts for speeding things up
     // (N = 10, Tm = 12.0)
-    double an[10] = {2.758402e-01, 2.245740e-01, 1.594149e-01, 9.866577e-02,
-                     5.324414e-02, 2.505215e-02, 1.027747e-02, 3.676164e-03,
-                     1.146494e-03, 3.117570e-04};
 
     RSComplex i = {0, 1};
     RSComplex one = {1, 0};
     RSComplex sum = {0, 0};
 #pragma unroll
-    for (int n = 0; n < 7; n++) {
+    for (int n = 0; n < 8; n++) {
       RSComplex t3 = {(n & 1) ? 1.0 : -1.0, 0};
       RSComplex top = c_sub(c_mul(t3, fast_cexp(Z)), one);
       RSComplex bot = c_mul(Z, Z);
-      RSComplex t6 = {an[n], 0};
-      sum = c_add(sum, c_mul(t6, c_div(top, bot)));
+      sum = c_add(sum, c_div(top, bot));
     }
     RSComplex W = c_mul(Z, sum);
     return W;
@@ -220,7 +216,7 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
   // window (pre-calculated)
   Window w = windows[nuc * max_num_windows + window];
   sigT = E * w.T;
-  sigA = E * w.A;
+  sigA = w.A;
   sigF = E * w.F;
 
   double dopp = 0.5;
