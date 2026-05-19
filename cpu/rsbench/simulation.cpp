@@ -264,9 +264,7 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
   // printf("here: %d\n",  nuc);
 
   // Prep Z
-  RSComplex E_c = {E, 0};
-  RSComplex dopp_c = {dopp, 0};
-  RSComplex Z = c_mul(c_sub(E_c, pole.MP_EA), dopp_c);
+  RSComplex Z = pole.MP_EA;
 
   // Evaluate Fadeeva Function
   RSComplex faddeeva = fast_nuclear_W(Z);
