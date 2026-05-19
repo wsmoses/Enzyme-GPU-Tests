@@ -240,8 +240,8 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
 
   sigE = sigT + sigA;
 
-  micro_xs[0] = sigT;
-  micro_xs[1] = sigA;
+  micro_xs[0] = 0.0;
+  micro_xs[1] = 0.0;
   micro_xs[2] = sigF;
   micro_xs[3] = sigE;
 }
