@@ -125,7 +125,7 @@ void calculate_macro_xs(double *__restrict__ macro_xs, int mat, double E,
   calculate_micro_xs_doppler(micro_xs, nuc, E, input, n_windows, pseudo_K0Rs,
                              windows, poles, max_num_windows, max_num_poles);
   for (int j = 0; j < 4; j++) {
-    macro_xs[j] += micro_xs[j] * concs[mat * max_num_nucs + i];
+    macro_xs[j] += micro_xs[j];
   }
 }
 
@@ -148,7 +148,6 @@ __attribute__((always_inline)) RSComplex fast_nuclear_W(RSComplex Z) {
     // Precomputed parts for speeding things up
     // (N = 10, Tm = 12.0)
 
-    RSComplex i = {0, 1};
     RSComplex one = {1, 0};
     RSComplex sum = {0, 0};
 #pragma unroll
