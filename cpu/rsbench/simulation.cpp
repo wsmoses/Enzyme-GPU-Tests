@@ -198,25 +198,7 @@ __attribute__((always_inline)) RSComplex fast_nuclear_W(RSComplex Z) {
     W = c_add(W, c_mul(prefactor, c_mul(Z, sum)));
     return W;
   } else {
-    // QUICK_2 3 Term Asymptotic Expansion (Accurate to O(1e-6)).
-    // Pre-computed parameters
-    RSComplex a = {
-        0.512424224754768462984202823134979415014943561548661637413182, 0};
-    RSComplex b = {
-        0.275255128608410950901357962647054304017026259671664935783653, 0};
-    RSComplex c = {
-        0.051765358792987823963876628425793170829107067780337219430904, 0};
-    RSComplex d = {
-        2.724744871391589049098642037352945695982973740328335064216346, 0};
-
-    RSComplex i = {0, 1};
-    RSComplex Z2 = c_mul(Z, Z);
-    // Three Term Asymptotic Expansion
-    RSComplex W =
-        c_mul(c_mul(Z, i),
-              (c_add(c_div(a, (c_sub(Z2, b))), c_div(c, (c_sub(Z2, d))))));
-
-    return W;
+    return Z;
   }
 }
 
