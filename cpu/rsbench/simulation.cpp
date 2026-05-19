@@ -142,19 +142,6 @@ void calculate_sig_T(int nuc, double E, Input input, double *pseudo_K0RS,
   }
 }
 
-void fast_nuclear_W_wrapper(RSComplex *Z, RSComplex *out) {
-  *out = fast_nuclear_W(*Z);
-}
-
-RSComplex d_fast_nuclear_W(RSComplex Z) {
-  RSComplex out, dZ = {0, 0};
-  RSComplex dout = {1.0, 1.0};
-  // __enzyme_autodiff<void>((void *)fast_nuclear_W_wrapper, enzyme_dup, &Z,
-  // &dZ,
-  //                         enzyme_dup, &out, &dout);
-  return dZ;
-}
-
 __attribute__((always_inline)) RSComplex fast_nuclear_W(RSComplex Z) {
   // Abrarov
   if (c_abs(Z) < 6.0) {
