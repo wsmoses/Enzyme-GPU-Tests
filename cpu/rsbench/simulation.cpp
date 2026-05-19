@@ -118,15 +118,14 @@ void calculate_macro_xs(double *__restrict__ macro_xs, int mat, double E,
 
   // for nuclide in mat
   int sz = num_nucs[mat];
-  for (int i = 0; i < sz; i++) {
-    double micro_xs[4] = {0};
-    int nuc = mats[mat * max_num_nucs + i];
+  int i = 0;
+  double micro_xs[4] = {0};
+  int nuc = mats[mat * max_num_nucs + i];
 
-    calculate_micro_xs_doppler(micro_xs, nuc, E, input, n_windows, pseudo_K0Rs,
-                               windows, poles, max_num_windows, max_num_poles);
-    for (int j = 0; j < 4; j++) {
-      macro_xs[j] += micro_xs[j] * concs[mat * max_num_nucs + i];
-    }
+  calculate_micro_xs_doppler(micro_xs, nuc, E, input, n_windows, pseudo_K0Rs,
+                             windows, poles, max_num_windows, max_num_poles);
+  for (int j = 0; j < 4; j++) {
+    macro_xs[j] += micro_xs[j] * concs[mat * max_num_nucs + i];
   }
 }
 
@@ -245,7 +244,7 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
       {0, 0},
       {0, 0},
       {0, 0}}; // Of length input.numL, which is always 4
-  calculate_sig_T(nuc, E, input, pseudo_K0RS, sigTfactors);
+  // calculate_sig_T(nuc, E, input, pseudo_K0RS, sigTfactors);
 
   // Calculate contributions from window "background" (i.e., poles outside
   // window (pre-calculated)
