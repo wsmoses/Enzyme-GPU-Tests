@@ -118,14 +118,15 @@ void calculate_macro_xs(double *__restrict__ macro_xs, int mat, double E,
 
   // for nuclide in mat
   int sz = num_nucs[mat];
-  int i = 0;
-  double micro_xs[4] = {0};
-  int nuc = mats[mat * max_num_nucs + i];
+  for (int i = 0; i < sz; i++) {
+    double micro_xs[4] = {0};
+    int nuc = mats[mat * max_num_nucs + i];
 
-  calculate_micro_xs_doppler(micro_xs, nuc, E, input, n_windows, pseudo_K0Rs,
-                             windows, poles, max_num_windows, max_num_poles);
-  for (int j = 1; j < 3; j++) {
-    macro_xs[j] += micro_xs[j];
+    calculate_micro_xs_doppler(micro_xs, nuc, E, input, n_windows, pseudo_K0Rs,
+                               windows, poles, max_num_windows, max_num_poles);
+    for (int j = 0; j < 4; j++) {
+      macro_xs[j] += micro_xs[j] * concs[mat * max_num_nucs + i];
+    }
   }
 }
 
@@ -135,10 +136,18 @@ void calculate_sig_T(int nuc, double E, Input input, double *pseudo_K0RS,
 
 #pragma unroll
   for (int i = 0; i < 4; i++) {
-    phi = 0;
+    phi = pseudo_K0RS[nuc * input.numL + i] * sqrt(E);
+    if (i == 1)
+      phi -= -atan(phi);
+    else if (i == 2)
+      phi -= atan(3.0 * phi / (3.0 - phi * phi));
+    else if (i == 3)
+      phi -= atan(phi * (15.0 - phi * phi) / (15.0 - 6.0 * phi * phi));
 
-    sigTfactors[i].r = (phi);
-    sigTfactors[i].i = (phi);
+    phi *= 2.0;
+
+    sigTfactors[i].r = +cos(phi);
+    sigTfactors[i].i = -sin(phi);
   }
 }
 
@@ -160,40 +169,55 @@ __attribute__((always_inline)) RSComplex fast_nuclear_W(RSComplex Z) {
   if (c_abs(Z) < 6.0) {
     // Precomputed parts for speeding things up
     // (N = 10, Tm = 12.0)
+    RSComplex prefactor = {0, 8.124330e+01};
+    double an[10] = {2.758402e-01, 2.245740e-01, 1.594149e-01, 9.866577e-02,
+                     5.324414e-02, 2.505215e-02, 1.027747e-02, 3.676164e-03,
+                     1.146494e-03, 3.117570e-04};
+    double neg_1n[10] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
+    double denominator_left[10] = {
+        9.869604e+00, 3.947842e+01, 8.882644e+01, 1.579137e+02, 2.467401e+02,
+        3.553058e+02, 4.836106e+02, 6.316547e+02, 7.994380e+02, 9.869604e+02};
+
+    RSComplex t1 = {0, 12};
+    RSComplex t2 = {12, 0};
+    RSComplex i = {0, 1};
     RSComplex one = {1, 0};
+    RSComplex W =
+        c_div(c_mul(i, (c_sub(one, fast_cexp(c_mul(t1, Z))))), c_mul(t2, Z));
     RSComplex sum = {0, 0};
 #pragma unroll
-    for (int n = 0; n < 8; n++) {
-      RSComplex t3 = {(n & 1) ? 1.0 : -1.0, 0};
-      RSComplex top = c_sub(c_mul(t3, fast_cexp(Z)), one);
-      RSComplex bot = c_mul(Z, Z);
-      sum = c_add(sum, c_div(top, bot));
+    for (int n = 0; n < 10; n++) {
+      RSComplex t3 = {neg_1n[n], 0};
+      RSComplex top = c_sub(c_mul(t3, fast_cexp(c_mul(t1, Z))), one);
+      RSComplex t4 = {denominator_left[n], 0};
+      RSComplex t5 = {144, 0};
+      RSComplex bot = c_sub(t4, c_mul(t5, c_mul(Z, Z)));
+      RSComplex t6 = {an[n], 0};
+      sum = c_add(sum, c_mul(t6, c_div(top, bot)));
     }
-    // W = c_add(W, c_mul(prefactor, c_mul(Z, sum)));
-    RSComplex W = c_mul(Z, sum);
+    W = c_add(W, c_mul(prefactor, c_mul(Z, sum)));
     return W;
   } else {
     // QUICK_2 3 Term Asymptotic Expansion (Accurate to O(1e-6)).
     // Pre-computed parameters
-    // RSComplex a = {
-    //     0.512424224754768462984202823134979415014943561548661637413182, 0};
-    // RSComplex b = {
-    //     0.275255128608410950901357962647054304017026259671664935783653, 0};
-    // RSComplex c = {
-    //     0.051765358792987823963876628425793170829107067780337219430904, 0};
-    // RSComplex d = {
-    //     2.724744871391589049098642037352945695982973740328335064216346, 0};
+    RSComplex a = {
+        0.512424224754768462984202823134979415014943561548661637413182, 0};
+    RSComplex b = {
+        0.275255128608410950901357962647054304017026259671664935783653, 0};
+    RSComplex c = {
+        0.051765358792987823963876628425793170829107067780337219430904, 0};
+    RSComplex d = {
+        2.724744871391589049098642037352945695982973740328335064216346, 0};
 
-    // RSComplex i = {0, 1};
-    // RSComplex Z2 = c_mul(Z, Z);
-    // // Three Term Asymptotic Expansion
-    // RSComplex W =
-    //     c_mul(c_mul(Z, i),
-    //           (c_add(c_div(a, (c_sub(Z2, b))), c_div(c, (c_sub(Z2, d))))));
+    RSComplex i = {0, 1};
+    RSComplex Z2 = c_mul(Z, Z);
+    // Three Term Asymptotic Expansion
+    RSComplex W =
+        c_mul(c_mul(Z, i),
+              (c_add(c_div(a, (c_sub(Z2, b))), c_div(c, (c_sub(Z2, d))))));
 
-    // return W;
-    return Z;
+    return W;
   }
 }
 
@@ -221,13 +245,13 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
       {0, 0},
       {0, 0},
       {0, 0}}; // Of length input.numL, which is always 4
-  // calculate_sig_T(nuc, E, input, pseudo_K0RS, sigTfactors);
+  calculate_sig_T(nuc, E, input, pseudo_K0RS, sigTfactors);
 
   // Calculate contributions from window "background" (i.e., poles outside
   // window (pre-calculated)
   Window w = windows[nuc * max_num_windows + window];
   sigT = E * w.T;
-  sigA = w.A;
+  sigA = E * w.A;
   sigF = E * w.F;
 
   double dopp = 0.5;
@@ -236,33 +260,30 @@ inline void calculate_micro_xs_doppler(double *micro_xs, int nuc, double E,
   //	printf("start=%d\n", w.start);
   //  Loop over Poles within window, add contributions
   int i = w.start;
-  // for (int i = w.start; i < w.end; i++) {
-  // nuc was 58
-  Pole pole = poles[nuc * max_num_poles + i];
-  // printf("here: %d\n",  nuc);
+  for (int i = w.start; i < w.end; i++) {
+    // nuc was 58
+    Pole pole = poles[nuc * max_num_poles + i];
+    // printf("here: %d\n",  nuc);
 
-  // Prep Z
-  RSComplex Z = pole.MP_EA;
-  // RSComplex Z = c_mul(c_sub(E_c, pole.MP_EA), dopp_c);
+    // Prep Z
+    RSComplex E_c = {E, 0};
+    RSComplex dopp_c = {dopp, 0};
+    RSComplex Z = c_mul(c_sub(E_c, pole.MP_EA), dopp_c);
 
-  // Evaluate Fadeeva Function
-  RSComplex faddeeva = fast_nuclear_W(Z);
+    // Evaluate Fadeeva Function
+    RSComplex faddeeva = fast_nuclear_W(Z);
 
-  // Update W
-  sigT += faddeeva.r;
-  // sigT += (c_mul(pole.MP_RT, c_mul(faddeeva, sigTfactors[pole.l_value]))).r;
-  // sigA += (c_mul(pole.MP_RA, faddeeva)).r;
-  // sigF += (c_mul(pole.MP_RF, faddeeva)).r;
-  // }
+    // Update W
+    // sigT += faddeeva.r;
+    sigT += (c_mul(pole.MP_RT, c_mul(faddeeva, sigTfactors[pole.l_value]))).r;
+    sigA += (c_mul(pole.MP_RA, faddeeva)).r;
+    sigF += (c_mul(pole.MP_RF, faddeeva)).r;
+  }
 
-  // sigE = sigT - sigA;
-  sigE = sigT + sigA;
+  sigE = sigT - sigA;
 
-  micro_xs[0] = 0.0;
-  micro_xs[1] = 0.0;
+  micro_xs[0] = sigT;
+  micro_xs[1] = sigA;
   micro_xs[2] = sigF;
   micro_xs[3] = sigE;
-  // micro_xs[1] = sigA;
-  // micro_xs[2] = sigF;
-  // micro_xs[3] = sigE;
 }
