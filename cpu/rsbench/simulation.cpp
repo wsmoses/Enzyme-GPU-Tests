@@ -135,18 +135,10 @@ void calculate_sig_T(int nuc, double E, Input input, double *pseudo_K0RS,
 
 #pragma unroll
   for (int i = 0; i < 4; i++) {
-    phi = pseudo_K0RS[nuc * input.numL + i] * sqrt(E);
-    if (i == 1)
-      phi -= -atan(phi);
-    else if (i == 2)
-      phi -= atan(3.0 * phi / (3.0 - phi * phi));
-    else if (i == 3)
-      phi -= atan(phi * (15.0 - phi * phi) / (15.0 - 6.0 * phi * phi));
+    phi = 0;
 
-    phi *= 2.0;
-
-    sigTfactors[i].r = +cos(phi);
-    sigTfactors[i].i = -sin(phi);
+    sigTfactors[i].r = phi;
+    sigTfactors[i].i = phi;
   }
 }
 
