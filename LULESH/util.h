@@ -58,7 +58,8 @@ void printVector(const char* label, const vector &v)
   std::cout  << std::endl;
 }
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600 
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600 && \
+    (!defined(__CUDACC_VER_MAJOR__) || __CUDACC_VER_MAJOR__ < 12) 
 // Double precision atomicAdd in software
 static 
 __device__ 
