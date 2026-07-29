@@ -2,6 +2,8 @@
 
 CUDA_PATH ?= /usr/local/cuda-12.9
 
+EMBEDDED_CLANG ?= no
+
 ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/ClangEnzyme-22.so
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
@@ -29,8 +31,14 @@ SELECT ?= no
 
 DEBUG ?= no
 
-CC := $(CLANG_PATH) 
-CFLAGS  = -DNDEBUG -I. -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
+CC := $(CLANG_PATH)
+
+ENZYME_LOAD_FLAGS :=
+ifeq ($(EMBEDDED_CLANG),no)
+  ENZYME_LOAD_FLAGS += -fplugin=$(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+endif
+
+CFLAGS  = -DNDEBUG -I. -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION) -std=c++11 $(ENZYME_LOAD_FLAGS) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
 LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH)
 
 source = allocator.cu lulesh-comms.cu lulesh-comms-gpu.cu lulesh.cu
