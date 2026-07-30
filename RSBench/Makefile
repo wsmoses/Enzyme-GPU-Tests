@@ -5,8 +5,10 @@
 CUDA_PATH ?= /usr/local/cuda-12.9
 
 EMBEDDED_CLANG ?= no
+USE_ENZYME_LLVM ?= no
 
-ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/ClangEnzyme-22.so
+CLANG_ENZYME ?= $(HOME)/git/Enzyme/enzyme/buildRelease/Enzyme/ClangEnzyme-24.so
+REACTANT_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/libClangReactant-24.so
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
@@ -60,11 +62,16 @@ CFLAGS := -mllvm -max-heap-to-stack-size=1000000
 CC := $(CLANG_PATH)
 
 ENZYME_LOAD_FLAGS :=
-ifeq ($(EMBEDDED_CLANG),no)
-  ENZYME_LOAD_FLAGS += -fplugin=$(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+ifeq ($(USE_ENZYME_LLVM),yes)
+  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME) -mllvm -enzyme-rematerialize=0
+else
+  ifeq ($(EMBEDDED_CLANG),no)
+    ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+  endif
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda -x cuda
 endif
 
-CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
+CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
 
 # Linker Flags
 LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) # -lReactantExtra
@@ -139,11 +146,11 @@ endif
 $(program): $(source) Makefile
 	$(CC) $(CFLAGS) $(source) $(LDFLAGS) -o $@
 
-# $(program): $(obj) rsbench.cuh Makefile
-# 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
+$(program)-llvm: $(obj) rsbench.cuh Makefile
+	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
-# %.o: %.cu rsbench.cuh Makefile
-# 	$(CC) $(CFLAGS) -c $< -o $@
+%.o: %.cu rsbench.cuh Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(program) *.o *.re_export
