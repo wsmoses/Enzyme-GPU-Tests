@@ -6,12 +6,20 @@
 #include<stdlib.h>
 #include<math.h>
 #include<assert.h>
+#include<stdint.h>
+
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/count.h>
 #include <thrust/partition.h>
-#include<stdint.h>
 #include <chrono> 
+#include<cuda.h> 
+
+#pragma pop_macro("__noinline__")
+
 #include<cuda.h> 
 
 // Grid types
