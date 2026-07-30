@@ -132,7 +132,7 @@ void *__enzyme_register_gradient_kern[3] = {(void *)kern, (void *)aug_kern,
                                             (void *)grad_kern};
 #endif
 
-extern "C" void __enzyme_ptr_size_hint(void *, size_t);
+extern "C" void __enzyme_ptr_size_hint(void *, size_t, int);
 
 void CUDA_LBM_kernel_loop_inner(int nTimeSteps, LBM_Grid srcGrid,
                                 LBM_Grid dstGrid) {
@@ -140,12 +140,14 @@ void CUDA_LBM_kernel_loop_inner(int nTimeSteps, LBM_Grid srcGrid,
   // cudaMalloc'd allocation (see CUDA_LBM_allocateGrid); Enzyme's cloneValue
   // (used to snapshot these buffers for the reverse pass) needs an explicit
   // size hint for raw pointers it didn't allocate itself. Hint the extent
-  // from the pointer forward to the end of the allocation.
+  // from the pointer forward to the end of the allocation, and the address
+  // space (1 = device) so the snapshot is made with the CUDA allocator instead
+  // of a host malloc/memcpy that would fault reading device memory.
   const size_t gridHintSize =
       TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
       2 * TOTAL_MARGIN * sizeof(float) - REAL_MARGIN * sizeof(float);
-  __enzyme_ptr_size_hint(srcGrid, gridHintSize);
-  __enzyme_ptr_size_hint(dstGrid, gridHintSize);
+  __enzyme_ptr_size_hint(srcGrid, gridHintSize, /*addrspace=*/1);
+  __enzyme_ptr_size_hint(dstGrid, gridHintSize, /*addrspace=*/1);
 
   __attribute__((enzyme_checkpointing_enable("binomial", 4)))
   for (unsigned int i = 0; i < nTimeSteps / 2; i++) {
