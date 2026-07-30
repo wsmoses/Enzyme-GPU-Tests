@@ -16,6 +16,7 @@
 #include <thrust/count.h>
 #include <thrust/partition.h>
 #include <chrono> 
+#include<cuda.h> 
 
 #pragma pop_macro("__noinline__")
 
