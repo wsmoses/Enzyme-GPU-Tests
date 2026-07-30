@@ -9,15 +9,15 @@
 /*############################################################################*/
 
 // includes, system
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <float.h>
 #include <cuda_runtime_api.h>
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 // includes, project
-#include "main.h"
 #include "lbm.h"
+#include "main.h"
 #ifndef __MCUDA__
 #include <cuda.h>
 #else
@@ -28,157 +28,201 @@
 
 #include <assert.h>
 
-#define DFL1 (1.0f/ 3.0f)
-#define DFL2 (1.0f/18.0f)
-#define DFL3 (1.0f/36.0f)
+#define DFL1 (1.0f / 3.0f)
+#define DFL2 (1.0f / 18.0f)
+#define DFL3 (1.0f / 36.0f)
 
 // includes, kernels
 #include "lbm_kernel.cu"
 
-#define REAL_MARGIN (CALC_INDEX(0, 0, 2, 0) - CALC_INDEX(0,0,0,0))
-#define TOTAL_MARGIN (2*PADDED_X*PADDED_Y*N_CELL_ENTRIES)
+#define REAL_MARGIN (CALC_INDEX(0, 0, 2, 0) - CALC_INDEX(0, 0, 0, 0))
+#define TOTAL_MARGIN (2 * PADDED_X * PADDED_Y * N_CELL_ENTRIES)
 
 /******************************************************************************/
 
-__host__ static void kern(float* src, float* dst) {
-	dim3 dimBlock, dimGrid;
-	dimBlock.x = SIZE_X;
-	dimGrid.x = SIZE_Y;
-	dimGrid.y = SIZE_Z;
-	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+struct PlainDim3 {
+  unsigned x, y, z;
+};
+
+__attribute__((enzyme_inactive)) __attribute__((always_inline)) static dim3
+makeLaunchDim3(unsigned x, unsigned y, unsigned z) {
+  PlainDim3 p = {x, y, z};
+  // Return via dim3's (trivial, known-safe-to-differentiate) copy
+  // constructor rather than its 3-argument constructor, which Enzyme
+  // cannot compute an adjoint for. Being always_inline (unlike the
+  // previous noinline version) also lets later raising passes see that
+  // x/y/z are compile-time constants when they are, instead of treating
+  // this function's result as opaque.
+  return *reinterpret_cast<dim3 *>(&p);
+}
+
+__attribute__((always_inline)) __host__ static void kern(float *src,
+                                                         float *dst) {
+  dim3 dimBlock = makeLaunchDim3(SIZE_X, 1, 1);
+  dim3 dimGrid = makeLaunchDim3(SIZE_Y, SIZE_Z, 1);
+  performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
 #ifndef ALLOW_AD
-	CUDA_ERRCK;
+  CUDA_ERRCK;
 #endif
 }
 
 class Allocator {
-	void* buf;
-	void* end;
-	void* begin;
+  void *buf;
+  void *end;
+  void *begin;
+
 public:
-	Allocator(size_t size) {
-		cudaMalloc(&buf, size);
-		CUDA_ERRCK;
-		end = (char*)buf + size;
-		begin = buf;
-	}
-	void* allocate(size_t size) {
-		void* newbegin = (char*) begin + size;
-		// assert(newbegin <= end);
-		void* mem = begin;
-		begin = newbegin;
-		return mem;
-	}
-	void free(void* ptr) {
-		// assert(buf <= ptr && ptr <= end);
-		begin = ptr;
-	}
+  Allocator(size_t size) {
+    cudaMalloc(&buf, size);
+    CUDA_ERRCK;
+    end = (char *)buf + size;
+    begin = buf;
+  }
+  void *allocate(size_t size) {
+    void *newbegin = (char *)begin + size;
+    // assert(newbegin <= end);
+    void *mem = begin;
+    begin = newbegin;
+    return mem;
+  }
+  void free(void *ptr) {
+    // assert(buf <= ptr && ptr <= end);
+    begin = ptr;
+  }
 };
-Allocator* A;
+Allocator *A;
 
 #ifdef ENZYME_LLVM_AD
-__host__ void* aug_kern(float* src, float* dsrc, float* dst, float* ddst) {
-	dim3 dimBlock, dimGrid;
-	dimBlock.x = SIZE_X;
-	dimGrid.x = SIZE_Y;
-	dimGrid.y = SIZE_Z;
-	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	void* ptr;
+__host__ void *aug_kern(float *src, float *dsrc, float *dst, float *ddst) {
+  dim3 dimBlock, dimGrid;
+  dimBlock.x = SIZE_X;
+  dimGrid.x = SIZE_Y;
+  dimGrid.y = SIZE_Z;
+  dimBlock.y = dimBlock.z = dimGrid.z = 1;
+  void *ptr;
 #ifdef ALLOCATOR
-	ptr = A->allocate(SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20));
+  ptr = A->allocate(SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20));
 #else
-	cudaMalloc((void**)&ptr, SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20));
+  cudaMalloc((void **)&ptr, SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20));
 #endif
-	performStreamCollide_augmented<<<dimGrid, dimBlock>>>(src, dsrc, dst, ddst, (Byte20*)ptr);
-	CUDA_ERRCK;
-	return ptr;
+  performStreamCollide_augmented<<<dimGrid, dimBlock>>>(src, dsrc, dst, ddst,
+                                                        (Byte20 *)ptr);
+  CUDA_ERRCK;
+  return ptr;
 }
 
-__host__ void grad_kern(float* src, float* dsrc, float* dst, float* ddst, void* tape) {
-	dim3 dimBlock, dimGrid;
-	dimBlock.x = SIZE_X;
-	dimGrid.x = SIZE_Y;
-	dimGrid.y = SIZE_Z;
-	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	performStreamCollide_gradient<<<dimGrid, dimBlock>>>(src, dsrc, dst, ddst, (Byte20*)tape);
-	CUDA_ERRCK;
+__host__ void grad_kern(float *src, float *dsrc, float *dst, float *ddst,
+                        void *tape) {
+  dim3 dimBlock, dimGrid;
+  dimBlock.x = SIZE_X;
+  dimGrid.x = SIZE_Y;
+  dimGrid.y = SIZE_Z;
+  dimBlock.y = dimBlock.z = dimGrid.z = 1;
+  performStreamCollide_gradient<<<dimGrid, dimBlock>>>(src, dsrc, dst, ddst,
+                                                       (Byte20 *)tape);
+  CUDA_ERRCK;
 #ifdef ALLOCATOR
-	A->free(tape);
+  A->free(tape);
 #else
-	cudaFree(tape);
+  cudaFree(tape);
 #endif
 }
 
-void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void*)grad_kern };
+void *__enzyme_register_gradient_kern[3] = {(void *)kern, (void *)aug_kern,
+                                            (void *)grad_kern};
 #endif
 
-void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
-	for (unsigned int i=0; i<nTimeSteps/2; i++) {
-		kern(srcGrid, dstGrid);
-		kern(dstGrid, srcGrid);
-	}
-}
+extern "C" void __enzyme_ptr_size_hint(void *, size_t);
 
+void CUDA_LBM_kernel_loop_inner(int nTimeSteps, LBM_Grid srcGrid,
+                                LBM_Grid dstGrid) {
+  // srcGrid/dstGrid already point REAL_MARGIN floats into their underlying
+  // cudaMalloc'd allocation (see CUDA_LBM_allocateGrid); Enzyme's cloneValue
+  // (used to snapshot these buffers for the reverse pass) needs an explicit
+  // size hint for raw pointers it didn't allocate itself. Hint the extent
+  // from the pointer forward to the end of the allocation.
+  const size_t gridHintSize =
+      TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+      2 * TOTAL_MARGIN * sizeof(float) - REAL_MARGIN * sizeof(float);
+  __enzyme_ptr_size_hint(srcGrid, gridHintSize);
+  __enzyme_ptr_size_hint(dstGrid, gridHintSize);
+
+  __attribute__((enzyme_checkpointing_enable("binomial", 4)))
+  for (unsigned int i = 0; i < nTimeSteps / 2; i++) {
+    kern(srcGrid, dstGrid);
+    kern(dstGrid, srcGrid);
+  }
+}
 
 extern void __enzyme_autodiff(void *, ...);
 
-__host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb ) {
+__host__ void CUDA_LBM_kernel_loop(int nTimeSteps, LBM_Grid srcGrid,
+                                   LBM_Grid srcGridb, LBM_Grid dstGrid,
+                                   LBM_Grid dstGridb) {
 
-	constexpr size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
-	constexpr size_t start = 15489;// + REAL_MARGIN;
+  constexpr size_t size = TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+                          2 * TOTAL_MARGIN * sizeof(float);
+  constexpr size_t start = 15489; // + REAL_MARGIN;
 #ifdef ALLOW_AD
 #ifdef ALLOCATOR
-	A = new Allocator(SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20) * nTimeSteps);
+  A = new Allocator(SIZE_X * SIZE_Y * SIZE_Z * sizeof(Byte20) * nTimeSteps);
 #endif
 #ifdef VERIFY
 
+  cudaMemset(srcGridb - REAL_MARGIN, 0, size);
+  cudaMemset(dstGridb - REAL_MARGIN, 0, size);
 
-	cudaMemset(srcGridb - REAL_MARGIN, 0, size);
-	cudaMemset(dstGridb - REAL_MARGIN, 0, size);
+  float *here = new float[N];
+  memset(here, 0, N * sizeof(float));
+  here[0] = 1.0;
+  cudaMemcpy(srcGridb + start, &here[0], N * sizeof(float),
+             cudaMemcpyHostToDevice);
 
-	float* here = new float[N];
-       	memset(here, 0, N*sizeof(float));
-	here[0] = 1.0;
-	cudaMemcpy(srcGridb + start, &here[0], N * sizeof(float), cudaMemcpyHostToDevice);
-
-	cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float),
+             cudaMemcpyDeviceToHost);
 #endif
-	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
+  __enzyme_autodiff((void *)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid,
+                    srcGridb, dstGrid, dstGridb);
 #ifdef ALLOCATOR
-	delete A;
+  delete A;
 #endif
 #ifdef VERIFY
-	cudaMemcpy(&here[0], srcGridb + start, N*sizeof(float), cudaMemcpyDeviceToHost);
-	for(int i=0; i<N; i++) printf("out here[%d]=%f\n", i, here[i]);
-	printf("der=%f\n", here[0]);	
+  cudaMemcpy(&here[0], srcGridb + start, N * sizeof(float),
+             cudaMemcpyDeviceToHost);
+  for (int i = 0; i < N; i++)
+    printf("out here[%d]=%f\n", i, here[i]);
+  printf("der=%f\n", here[0]);
 #endif
 #else
 
 #ifdef VERIFY
 
-	float* cache = new float[size/sizeof(float)];
+  float *cache = new float[size / sizeof(float)];
 
-	cudaMemcpy(&cache[0], srcGrid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
+  cudaMemcpy(&cache[0], srcGrid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
 #endif
 
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+  CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
 
 #ifdef VERIFY
-	constexpr size_t N = 1;
-	#define PREC 1e-2
-	float* here = new float[N];
-	cudaMemcpy(&here[0], srcGrid + start, N*sizeof(float), cudaMemcpyDeviceToHost);
-	
-	cache[start + REAL_MARGIN] += PREC;
-	cudaMemcpy(srcGrid - REAL_MARGIN, &cache[0], size, cudaMemcpyHostToDevice);
-	
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
-	
-	float* here2 = new float[N];
-	cudaMemcpy(&here2[0], srcGrid + start, N*sizeof(float), cudaMemcpyDeviceToHost);
+  constexpr size_t N = 1;
+#define PREC 1e-2
+  float *here = new float[N];
+  cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float),
+             cudaMemcpyDeviceToHost);
 
-	for(int i=0; i<N; i++) printf("real PREC=%e here[%d]=%f here2=%f dif=%e, der=%f\n", PREC, i, here[i], here2[i], here2[i]-here[i], (here2[i]-here[i])/PREC);
+  cache[start + REAL_MARGIN] += PREC;
+  cudaMemcpy(srcGrid - REAL_MARGIN, &cache[0], size, cudaMemcpyHostToDevice);
+
+  CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+
+  float *here2 = new float[N];
+  cudaMemcpy(&here2[0], srcGrid + start, N * sizeof(float),
+             cudaMemcpyDeviceToHost);
+
+  for (int i = 0; i < N; i++)
+    printf("real PREC=%e here[%d]=%f here2=%f dif=%e, der=%f\n", PREC, i,
+           here[i], here2[i], here2[i] - here[i], (here2[i] - here[i]) / PREC);
 #endif
 
 #endif
@@ -186,291 +230,266 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 
 /*############################################################################*/
 
-void LBM_allocateGrid( float** ptr ) {
-	const size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
+void LBM_allocateGrid(float **ptr) {
+  const size_t size = TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+                      2 * TOTAL_MARGIN * sizeof(float);
 
-	*ptr = (float*)malloc( size );
-	if( ! *ptr ) {
-		printf( "LBM_allocateGrid: could not allocate %.1f MByte\n",
-				size / (1024.0*1024.0) );
-		exit( 1 );
-	}
+  *ptr = (float *)malloc(size);
+  if (!*ptr) {
+    printf("LBM_allocateGrid: could not allocate %.1f MByte\n",
+           size / (1024.0 * 1024.0));
+    exit(1);
+  }
 
-	memset( *ptr, 0, size );
+  memset(*ptr, 0, size);
 
-	printf( "LBM_allocateGrid: allocated %.1f MByte\n",
-			size / (1024.0*1024.0) );
-	*ptr += REAL_MARGIN;
+  printf("LBM_allocateGrid: allocated %.1f MByte\n", size / (1024.0 * 1024.0));
+  *ptr += REAL_MARGIN;
 }
 
 /******************************************************************************/
 
-void CUDA_LBM_allocateGrid( float** ptr ) {
-	const size_t size = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
-	cudaMalloc((void**)ptr, size);
-        CUDA_ERRCK;
-	*ptr += REAL_MARGIN;
+void CUDA_LBM_allocateGrid(float **ptr) {
+  const size_t size = TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+                      2 * TOTAL_MARGIN * sizeof(float);
+  cudaMalloc((void **)ptr, size);
+  CUDA_ERRCK;
+  *ptr += REAL_MARGIN;
 }
 
 /*############################################################################*/
 
-void LBM_freeGrid( float** ptr ) {
-	free( *ptr-REAL_MARGIN );
-	*ptr = NULL;
+void LBM_freeGrid(float **ptr) {
+  free(*ptr - REAL_MARGIN);
+  *ptr = NULL;
 }
 
 /******************************************************************************/
 
-void CUDA_LBM_freeGrid( float** ptr ) {
-	cudaFree( *ptr-REAL_MARGIN );
-	*ptr = NULL;
+void CUDA_LBM_freeGrid(float **ptr) {
+  cudaFree(*ptr - REAL_MARGIN);
+  *ptr = NULL;
 }
 
 /*############################################################################*/
 
-void LBM_initializeGrid( LBM_Grid grid ) {
-	SWEEP_VAR
+void LBM_initializeGrid(LBM_Grid grid) {
+  SWEEP_VAR
 
-	SWEEP_START( 0, 0, 0, 0, 0, SIZE_Z )
-	SRC_C( grid  ) = DFL1;
-	SRC_N( grid  ) = DFL2;
-	SRC_S( grid  ) = DFL2;
-	SRC_E( grid  ) = DFL2;
-	SRC_W( grid  ) = DFL2;
-	SRC_T( grid  ) = DFL2;
-	SRC_B( grid  ) = DFL2;
-	SRC_NE( grid ) = DFL3;
-	SRC_NW( grid ) = DFL3;
-	SRC_SE( grid ) = DFL3;
-	SRC_SW( grid ) = DFL3;
-	SRC_NT( grid ) = DFL3;
-	SRC_NB( grid ) = DFL3;
-	SRC_ST( grid ) = DFL3;
-	SRC_SB( grid ) = DFL3;
-	SRC_ET( grid ) = DFL3;
-	SRC_EB( grid ) = DFL3;
-	SRC_WT( grid ) = DFL3;
-	SRC_WB( grid ) = DFL3;
+  SWEEP_START(0, 0, 0, 0, 0, SIZE_Z)
+  SRC_C(grid) = DFL1;
+  SRC_N(grid) = DFL2;
+  SRC_S(grid) = DFL2;
+  SRC_E(grid) = DFL2;
+  SRC_W(grid) = DFL2;
+  SRC_T(grid) = DFL2;
+  SRC_B(grid) = DFL2;
+  SRC_NE(grid) = DFL3;
+  SRC_NW(grid) = DFL3;
+  SRC_SE(grid) = DFL3;
+  SRC_SW(grid) = DFL3;
+  SRC_NT(grid) = DFL3;
+  SRC_NB(grid) = DFL3;
+  SRC_ST(grid) = DFL3;
+  SRC_SB(grid) = DFL3;
+  SRC_ET(grid) = DFL3;
+  SRC_EB(grid) = DFL3;
+  SRC_WT(grid) = DFL3;
+  SRC_WB(grid) = DFL3;
 
-	CLEAR_ALL_FLAGS_SWEEP( grid );
-	SWEEP_END
+  CLEAR_ALL_FLAGS_SWEEP(grid);
+  SWEEP_END
 }
 
 /******************************************************************************/
 
-void CUDA_LBM_initializeGrid( float** d_grid, float** h_grid ) {
-	const size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
+void CUDA_LBM_initializeGrid(float **d_grid, float **h_grid) {
+  const size_t size = TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+                      2 * TOTAL_MARGIN * sizeof(float);
 
-	cudaMemcpy(*d_grid - REAL_MARGIN, *h_grid - REAL_MARGIN, size, cudaMemcpyHostToDevice);
-        CUDA_ERRCK;
+  cudaMemcpy(*d_grid - REAL_MARGIN, *h_grid - REAL_MARGIN, size,
+             cudaMemcpyHostToDevice);
+  CUDA_ERRCK;
 }
 
-void CUDA_LBM_getDeviceGrid( float** d_grid, float** h_grid ) {
-	const size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
-        cudaThreadSynchronize();
-        CUDA_ERRCK;
-	cudaMemcpy(*h_grid - REAL_MARGIN, *d_grid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
-        CUDA_ERRCK;
-}
-
-/*############################################################################*/
-
-void LBM_swapGrids( LBM_GridPtr grid1, LBM_GridPtr grid2 ) {
-	LBM_Grid aux = *grid1;
-	*grid1 = *grid2;
-	*grid2 = aux;
+void CUDA_LBM_getDeviceGrid(float **d_grid, float **h_grid) {
+  const size_t size = TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+                      2 * TOTAL_MARGIN * sizeof(float);
+  cudaThreadSynchronize();
+  CUDA_ERRCK;
+  cudaMemcpy(*h_grid - REAL_MARGIN, *d_grid - REAL_MARGIN, size,
+             cudaMemcpyDeviceToHost);
+  CUDA_ERRCK;
 }
 
 /*############################################################################*/
 
-void LBM_loadObstacleFile( LBM_Grid grid, const char* filename ) {
-	int x,  y,  z;
-
-	FILE* file = fopen( filename, "rb" );
-
-	for( z = 0; z < SIZE_Z; z++ ) {
-		for( y = 0; y < SIZE_Y; y++ ) {
-			for( x = 0; x < SIZE_X; x++ ) {
-				if( fgetc( file ) != '.' ) SET_FLAG( grid, x, y, z, OBSTACLE );
-			}
-			fgetc( file );
-		}
-		fgetc( file );
-	}
-
-	fclose( file );
+void LBM_swapGrids(LBM_GridPtr grid1, LBM_GridPtr grid2) {
+  LBM_Grid aux = *grid1;
+  *grid1 = *grid2;
+  *grid2 = aux;
 }
 
 /*############################################################################*/
 
-void LBM_initializeSpecialCellsForLDC( LBM_Grid grid ) {
-	int x,  y,  z;
+void LBM_loadObstacleFile(LBM_Grid grid, const char *filename) {
+  int x, y, z;
 
-	for( z = -2; z < SIZE_Z+2; z++ ) {
-		for( y = 0; y < SIZE_Y; y++ ) {
-			for( x = 0; x < SIZE_X; x++ ) {
-				if( x == 0 || x == SIZE_X-1 ||
-						y == 0 || y == SIZE_Y-1 ||
-						z == 0 || z == SIZE_Z-1 ) {
-					SET_FLAG( grid, x, y, z, OBSTACLE );
-				}
-				else {
-					if( (z == 1 || z == SIZE_Z-2) &&
-							x > 1 && x < SIZE_X-2 &&
-							y > 1 && y < SIZE_Y-2 ) {
-						SET_FLAG( grid, x, y, z, ACCEL );
-					}
-				}
-			}
-		}
-	}
+  FILE *file = fopen(filename, "rb");
+
+  for (z = 0; z < SIZE_Z; z++) {
+    for (y = 0; y < SIZE_Y; y++) {
+      for (x = 0; x < SIZE_X; x++) {
+        if (fgetc(file) != '.')
+          SET_FLAG(grid, x, y, z, OBSTACLE);
+      }
+      fgetc(file);
+    }
+    fgetc(file);
+  }
+
+  fclose(file);
 }
 
 /*############################################################################*/
 
-void LBM_showGridStatistics( LBM_Grid grid ) {
-	int nObstacleCells = 0,
-	    nAccelCells    = 0,
-	    nFluidCells    = 0;
-	float ux, uy, uz;
-	float minU2  = 1e+30, maxU2  = -1e+30, u2;
-	float minRho = 1e+30, maxRho = -1e+30, rho;
-	float mass = 0;
+void LBM_initializeSpecialCellsForLDC(LBM_Grid grid) {
+  int x, y, z;
 
-	SWEEP_VAR
-
-		SWEEP_START( 0, 0, 0, 0, 0, SIZE_Z )
-		rho = LOCAL( grid, C  ) + LOCAL( grid, N  )
-		+ LOCAL( grid, S  ) + LOCAL( grid, E  )
-		+ LOCAL( grid, W  ) + LOCAL( grid, T  )
-		+ LOCAL( grid, B  ) + LOCAL( grid, NE )
-		+ LOCAL( grid, NW ) + LOCAL( grid, SE )
-		+ LOCAL( grid, SW ) + LOCAL( grid, NT )
-		+ LOCAL( grid, NB ) + LOCAL( grid, ST )
-		+ LOCAL( grid, SB ) + LOCAL( grid, ET )
-		+ LOCAL( grid, EB ) + LOCAL( grid, WT )
-		+ LOCAL( grid, WB );
-	if( rho < minRho ) minRho = rho;
-	if( rho > maxRho ) maxRho = rho;
-	mass += rho;
-
-	if( TEST_FLAG_SWEEP( grid, OBSTACLE )) {
-		nObstacleCells++;
-	}
-	else {
-		if( TEST_FLAG_SWEEP( grid, ACCEL ))
-			nAccelCells++;
-		else
-			nFluidCells++;
-
-		ux = + LOCAL( grid, E  ) - LOCAL( grid, W  )
-			+ LOCAL( grid, NE ) - LOCAL( grid, NW )
-			+ LOCAL( grid, SE ) - LOCAL( grid, SW )
-			+ LOCAL( grid, ET ) + LOCAL( grid, EB )
-			- LOCAL( grid, WT ) - LOCAL( grid, WB );
-		uy = + LOCAL( grid, N  ) - LOCAL( grid, S  )
-			+ LOCAL( grid, NE ) + LOCAL( grid, NW )
-			- LOCAL( grid, SE ) - LOCAL( grid, SW )
-			+ LOCAL( grid, NT ) + LOCAL( grid, NB )
-			- LOCAL( grid, ST ) - LOCAL( grid, SB );
-		uz = + LOCAL( grid, T  ) - LOCAL( grid, B  )
-			+ LOCAL( grid, NT ) - LOCAL( grid, NB )
-			+ LOCAL( grid, ST ) - LOCAL( grid, SB )
-			+ LOCAL( grid, ET ) - LOCAL( grid, EB )
-			+ LOCAL( grid, WT ) - LOCAL( grid, WB );
-		u2 = (ux*ux + uy*uy + uz*uz) / (rho*rho);
-		if( u2 < minU2 ) minU2 = u2;
-		if( u2 > maxU2 ) maxU2 = u2;
-	}
-	SWEEP_END
-
-		printf( "LBM_showGridStatistics:\n"
-				"\tnObstacleCells: %7i nAccelCells: %7i nFluidCells: %7i\n"
-				"\tminRho: %8.4f maxRho: %8.4f mass: %e\n"
-				"\tminU: %e maxU: %e\n\n",
-				nObstacleCells, nAccelCells, nFluidCells,
-				minRho, maxRho, mass,
-				sqrt( minU2 ), sqrt( maxU2 ) );
-
+  for (z = -2; z < SIZE_Z + 2; z++) {
+    for (y = 0; y < SIZE_Y; y++) {
+      for (x = 0; x < SIZE_X; x++) {
+        if (x == 0 || x == SIZE_X - 1 || y == 0 || y == SIZE_Y - 1 || z == 0 ||
+            z == SIZE_Z - 1) {
+          SET_FLAG(grid, x, y, z, OBSTACLE);
+        } else {
+          if ((z == 1 || z == SIZE_Z - 2) && x > 1 && x < SIZE_X - 2 && y > 1 &&
+              y < SIZE_Y - 2) {
+            SET_FLAG(grid, x, y, z, ACCEL);
+          }
+        }
+      }
+    }
+  }
 }
 
 /*############################################################################*/
 
-static void storeValue( FILE* file, OUTPUT_PRECISION* v ) {
-	const int litteBigEndianTest = 1;
-	assert(file);
-	if( (*((unsigned char*) &litteBigEndianTest)) == 0 ) {         /* big endian */
-		const char* vPtr = (char*) v;
-		char buffer[sizeof( OUTPUT_PRECISION )];
-		int i;
+void LBM_showGridStatistics(LBM_Grid grid) {
+  int nObstacleCells = 0, nAccelCells = 0, nFluidCells = 0;
+  float ux, uy, uz;
+  float minU2 = 1e+30, maxU2 = -1e+30, u2;
+  float minRho = 1e+30, maxRho = -1e+30, rho;
+  float mass = 0;
 
-		for (i = 0; i < sizeof( OUTPUT_PRECISION ); i++)
-			buffer[i] = vPtr[sizeof( OUTPUT_PRECISION ) - i - 1];
+  SWEEP_VAR
 
-		fwrite( buffer, sizeof( OUTPUT_PRECISION ), 1, file );
-	}
-	else {                                                     /* little endian */
-		fwrite( v, sizeof( OUTPUT_PRECISION ), 1, file );
-	}
+  SWEEP_START(0, 0, 0, 0, 0, SIZE_Z)
+  rho = LOCAL(grid, C) + LOCAL(grid, N) + LOCAL(grid, S) + LOCAL(grid, E) +
+        LOCAL(grid, W) + LOCAL(grid, T) + LOCAL(grid, B) + LOCAL(grid, NE) +
+        LOCAL(grid, NW) + LOCAL(grid, SE) + LOCAL(grid, SW) + LOCAL(grid, NT) +
+        LOCAL(grid, NB) + LOCAL(grid, ST) + LOCAL(grid, SB) + LOCAL(grid, ET) +
+        LOCAL(grid, EB) + LOCAL(grid, WT) + LOCAL(grid, WB);
+  if (rho < minRho)
+    minRho = rho;
+  if (rho > maxRho)
+    maxRho = rho;
+  mass += rho;
+
+  if (TEST_FLAG_SWEEP(grid, OBSTACLE)) {
+    nObstacleCells++;
+  } else {
+    if (TEST_FLAG_SWEEP(grid, ACCEL))
+      nAccelCells++;
+    else
+      nFluidCells++;
+
+    ux = +LOCAL(grid, E) - LOCAL(grid, W) + LOCAL(grid, NE) - LOCAL(grid, NW) +
+         LOCAL(grid, SE) - LOCAL(grid, SW) + LOCAL(grid, ET) + LOCAL(grid, EB) -
+         LOCAL(grid, WT) - LOCAL(grid, WB);
+    uy = +LOCAL(grid, N) - LOCAL(grid, S) + LOCAL(grid, NE) + LOCAL(grid, NW) -
+         LOCAL(grid, SE) - LOCAL(grid, SW) + LOCAL(grid, NT) + LOCAL(grid, NB) -
+         LOCAL(grid, ST) - LOCAL(grid, SB);
+    uz = +LOCAL(grid, T) - LOCAL(grid, B) + LOCAL(grid, NT) - LOCAL(grid, NB) +
+         LOCAL(grid, ST) - LOCAL(grid, SB) + LOCAL(grid, ET) - LOCAL(grid, EB) +
+         LOCAL(grid, WT) - LOCAL(grid, WB);
+    u2 = (ux * ux + uy * uy + uz * uz) / (rho * rho);
+    if (u2 < minU2)
+      minU2 = u2;
+    if (u2 > maxU2)
+      maxU2 = u2;
+  }
+  SWEEP_END
+
+  printf("LBM_showGridStatistics:\n"
+         "\tnObstacleCells: %7i nAccelCells: %7i nFluidCells: %7i\n"
+         "\tminRho: %8.4f maxRho: %8.4f mass: %e\n"
+         "\tminU: %e maxU: %e\n\n",
+         nObstacleCells, nAccelCells, nFluidCells, minRho, maxRho, mass,
+         sqrt(minU2), sqrt(maxU2));
 }
 
 /*############################################################################*/
 
-void LBM_storeVelocityField( LBM_Grid grid, const char* filename,
-		const int binary ) {
-	OUTPUT_PRECISION rho, ux, uy, uz;
+static void storeValue(FILE *file, OUTPUT_PRECISION *v) {
+  const int litteBigEndianTest = 1;
+  assert(file);
+  if ((*((unsigned char *)&litteBigEndianTest)) == 0) { /* big endian */
+    const char *vPtr = (char *)v;
+    char buffer[sizeof(OUTPUT_PRECISION)];
+    int i;
 
-	FILE* file = fopen( filename, (binary ? "wb" : "w") );
-	if (!file) {
-           fprintf(stderr, "can't open %s: %s\n", filename, strerror(errno));
-	   exit(1);
-	}
+    for (i = 0; i < sizeof(OUTPUT_PRECISION); i++)
+      buffer[i] = vPtr[sizeof(OUTPUT_PRECISION) - i - 1];
 
-	SWEEP_VAR
-	SWEEP_START(0,0,0,SIZE_X,SIZE_Y,SIZE_Z)
-				rho = + SRC_C( grid ) + SRC_N( grid )
-					+ SRC_S( grid ) + SRC_E( grid )
-					+ SRC_W( grid ) + SRC_T( grid )
-					+ SRC_B( grid ) + SRC_NE( grid )
-					+ SRC_NW( grid ) + SRC_SE( grid )
-					+ SRC_SW( grid ) + SRC_NT( grid )
-					+ SRC_NB( grid ) + SRC_ST( grid )
-					+ SRC_SB( grid ) + SRC_ET( grid )
-					+ SRC_EB( grid ) + SRC_WT( grid )
-					+ SRC_WB( grid );
-				ux = + SRC_E( grid ) - SRC_W( grid ) 
-					+ SRC_NE( grid ) - SRC_NW( grid ) 
-					+ SRC_SE( grid ) - SRC_SW( grid ) 
-					+ SRC_ET( grid ) + SRC_EB( grid ) 
-					- SRC_WT( grid ) - SRC_WB( grid );
-				uy = + SRC_N( grid ) - SRC_S( grid ) 
-					+ SRC_NE( grid ) + SRC_NW( grid ) 
-					- SRC_SE( grid ) - SRC_SW( grid ) 
-					+ SRC_NT( grid ) + SRC_NB( grid ) 
-					- SRC_ST( grid ) - SRC_SB( grid );
-				uz = + SRC_T( grid ) - SRC_B( grid ) 
-					+ SRC_NT( grid ) - SRC_NB( grid ) 
-					+ SRC_ST( grid ) - SRC_SB( grid ) 
-					+ SRC_ET( grid ) - SRC_EB( grid ) 
-					+ SRC_WT( grid ) - SRC_WB( grid );
-				ux /= rho;
-				uy /= rho;
-				uz /= rho;
-
-				if( binary ) {
-					/*
-					   fwrite( &ux, sizeof( ux ), 1, file );
-					   fwrite( &uy, sizeof( uy ), 1, file );
-					   fwrite( &uz, sizeof( uz ), 1, file );
-					   */
-					storeValue( file, &ux );
-					storeValue( file, &uy );
-					storeValue( file, &uz );
-				} else
-					fprintf( file, "%e %e %e\n", ux, uy, uz );
-
-	SWEEP_END;
-
-	fclose( file );
+    fwrite(buffer, sizeof(OUTPUT_PRECISION), 1, file);
+  } else { /* little endian */
+    fwrite(v, sizeof(OUTPUT_PRECISION), 1, file);
+  }
 }
 
+/*############################################################################*/
+
+void LBM_storeVelocityField(LBM_Grid grid, const char *filename,
+                            const int binary) {
+  OUTPUT_PRECISION rho, ux, uy, uz;
+
+  FILE *file = fopen(filename, (binary ? "wb" : "w"));
+  if (!file) {
+    fprintf(stderr, "can't open %s: %s\n", filename, strerror(errno));
+    exit(1);
+  }
+
+  SWEEP_VAR
+  SWEEP_START(0, 0, 0, SIZE_X, SIZE_Y, SIZE_Z)
+  rho = +SRC_C(grid) + SRC_N(grid) + SRC_S(grid) + SRC_E(grid) + SRC_W(grid) +
+        SRC_T(grid) + SRC_B(grid) + SRC_NE(grid) + SRC_NW(grid) + SRC_SE(grid) +
+        SRC_SW(grid) + SRC_NT(grid) + SRC_NB(grid) + SRC_ST(grid) +
+        SRC_SB(grid) + SRC_ET(grid) + SRC_EB(grid) + SRC_WT(grid) +
+        SRC_WB(grid);
+  ux = +SRC_E(grid) - SRC_W(grid) + SRC_NE(grid) - SRC_NW(grid) + SRC_SE(grid) -
+       SRC_SW(grid) + SRC_ET(grid) + SRC_EB(grid) - SRC_WT(grid) - SRC_WB(grid);
+  uy = +SRC_N(grid) - SRC_S(grid) + SRC_NE(grid) + SRC_NW(grid) - SRC_SE(grid) -
+       SRC_SW(grid) + SRC_NT(grid) + SRC_NB(grid) - SRC_ST(grid) - SRC_SB(grid);
+  uz = +SRC_T(grid) - SRC_B(grid) + SRC_NT(grid) - SRC_NB(grid) + SRC_ST(grid) -
+       SRC_SB(grid) + SRC_ET(grid) - SRC_EB(grid) + SRC_WT(grid) - SRC_WB(grid);
+  ux /= rho;
+  uy /= rho;
+  uz /= rho;
+
+  if (binary) {
+    /*
+       fwrite( &ux, sizeof( ux ), 1, file );
+       fwrite( &uy, sizeof( uy ), 1, file );
+       fwrite( &uz, sizeof( uz ), 1, file );
+       */
+    storeValue(file, &ux);
+    storeValue(file, &uy);
+    storeValue(file, &uz);
+  } else
+    fprintf(file, "%e %e %e\n", ux, uy, uz);
+
+  SWEEP_END;
+
+  fclose(file);
+}
