@@ -33,6 +33,10 @@ SPLITMULTI  ?= yes
 AFFINEAD    ?= yes
 VERIFY      ?= no
 
+# Binomial checkpointing of the outer kernel loop (requires FORWARD=no)
+BINOMIAL        ?= no
+BINOMIAL_BUDGET ?= 4
+
 DEBUG       = no
 PROFILE     = no
 SM_VERSION  = 120
@@ -133,6 +137,11 @@ else
   ifeq ($(USE_ENZYME_LLVM),yes)
     CFLAGS += -DENZYME_LLVM_AD=1
   endif
+endif
+
+# Binomial checkpointing Flags
+ifeq ($(BINOMIAL),yes)
+  CFLAGS += -DBINOMIAL_CHECKPOINTING=1 -DBINOMIAL_BUDGET=$(BINOMIAL_BUDGET)
 endif
 
 
