@@ -40,7 +40,6 @@
 
 /******************************************************************************/
 
-__attribute__((noinline))
 __host__ static void kern(float* src, float* dst) {
 	dim3 dimBlock, dimGrid;
 	dimBlock.x = SIZE_X;
@@ -48,7 +47,9 @@ __host__ static void kern(float* src, float* dst) {
 	dimGrid.y = SIZE_Z;
 	dimBlock.y = dimBlock.z = dimGrid.z = 1;
 	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+#ifndef ALLOW_AD
 	CUDA_ERRCK;
+#endif
 }
 
 class Allocator {
@@ -76,7 +77,7 @@ public:
 };
 Allocator* A;
 
-#ifdef ALLOW_AD
+#ifdef ENZYME_LLVM_AD
 __host__ void* aug_kern(float* src, float* dsrc, float* dst, float* ddst) {
 	dim3 dimBlock, dimGrid;
 	dimBlock.x = SIZE_X;

@@ -5,8 +5,10 @@
 CUDA_PATH ?= /usr/local/cuda-12.9
 
 EMBEDDED_CLANG ?= no
+USE_ENZYME_LLVM ?= no
 
-ENZYME_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/ClangEnzyme-22.so
+CLANG_ENZYME ?= $(HOME)/git/Enzyme/enzyme/buildRelease/Enzyme/ClangEnzyme-24.so
+REACTANT_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/libClangReactant-24.so
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
@@ -16,7 +18,7 @@ export PATH := $(CUDA_PATH)/bin:$(PATH)
 export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
-OPTIMIZE    ?= no # yes
+OPTIMIZE    ?= yes
 
 NEWCACHE    ?= yes
 AA          ?= no
@@ -24,7 +26,7 @@ PHISTRUCT   ?= no
 FORWARD     ?= yes
 COALESE     ?= yes
 CACHELICM   ?= yes
-ABI         ?= no
+ABI         ?= yes
 ALLOCATOR   ?= no
 VERIFY      ?= no
 
@@ -38,7 +40,9 @@ SM_VERSION  = 120
 
 program = lbm
 
-source = args.c lbm.cu lbm_kernel.cu parboil_cuda.c main.cc
+source = args.cc lbm.cu parboil_cuda.cc main.cc
+
+obj = $(patsubst %.cc,%.o,$(patsubst %.cu,%.o,$(source)))
 
 #===============================================================================
 # Sets Flags
@@ -53,11 +57,16 @@ CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I $(CUDA_PATH)/include -I .
 CC := $(CLANG_PATH)
 
 ENZYME_LOAD_FLAGS :=
-ifeq ($(EMBEDDED_CLANG),no)
-  ENZYME_LOAD_FLAGS += -fplugin=$(ENZYME_PATH) -Xclang -add-plugin -Xclang enzyme -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+ifeq ($(USE_ENZYME_LLVM),yes)
+  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME)
+else
+  ifeq ($(EMBEDDED_CLANG),no)
+    ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+  endif
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda
 endif
 
-CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -mllvm -reactant-backend -mllvm cuda -x cuda -fno-exceptions
+CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
   
 
 # Linker Flags
@@ -79,6 +88,7 @@ endif
 
 ifeq ($(ABI),yes)
   CFLAGS += -DABI
+  CFLAGS += -DSIZE=20
 else
   CFLAGS += -DSIZE=8
 endif
@@ -99,7 +109,10 @@ endif
 ifeq ($(FORWARD),yes)
   CFLAGS += 
 else
-  CFLAGS += -DALLOW_AD=1 
+  CFLAGS += -DALLOW_AD=1
+  ifeq ($(USE_ENZYME_LLVM),yes)
+    CFLAGS += -DENZYME_LLVM_AD=1
+  endif
 endif
 
 
@@ -146,7 +159,16 @@ endif
 #===============================================================================
 
 $(program): $(source) Makefile
-	$(CC) $(CFLAGS) args.c lbm.cu lbm_kernel.cu parboil_cuda.c main.cc $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) args.cc lbm.cu lbm_kernel.cu parboil_cuda.cc main.cc $(LDFLAGS) -o $@
+
+$(program)-llvm: $(obj) lbm_kernel.cu Makefile
+	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
+
+%.o: %.cu lbm.h main.h parboil.h lbm_macros.h lbm_kernel.cu Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cc lbm.h main.h parboil.h lbm_macros.h Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(program) *.o *.re_export
