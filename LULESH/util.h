@@ -1,8 +1,13 @@
 #pragma once
 
 #include <stdio.h>
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <iostream>
 #include <iomanip>
+
+#pragma pop_macro("__noinline__")
 
 #define cudaSafeCall(x) x;cudaCheckError()
 

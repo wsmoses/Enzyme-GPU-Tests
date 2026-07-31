@@ -10,8 +10,13 @@
 
 #pragma once
 
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <stack>
 #include <map>
+
+#pragma pop_macro("__noinline__")
 
 /***********************************************************
  * Class to allocate arrays of memory for temperary use. 
