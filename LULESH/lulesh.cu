@@ -65,9 +65,14 @@ Additional BSD Notice
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+
+#pragma pop_macro("__noinline__")
 
 #include <util.h>
 #include <sm_utils.inl>
