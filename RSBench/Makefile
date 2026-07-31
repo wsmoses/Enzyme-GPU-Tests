@@ -142,9 +142,9 @@ ifeq ($(REMATERIALIZER),yes)
 	CFLAGS +=  -mllvm -enzyme-rematerialize=1
 else
 	CFLAGS +=  -mllvm -enzyme-rematerialize=0
-end
+endif
 
-end
+endif
 
 #===============================================================================
 # Targets to Build
