@@ -20,6 +20,7 @@ export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
 OPTIMIZE    ?= yes
 
+REMATERIALIZER ?= no
 NEWCACHE    ?= yes
 AA          ?= no
 PHISTRUCT   ?= no
@@ -63,7 +64,7 @@ CC := $(CLANG_PATH)
 
 ENZYME_LOAD_FLAGS :=
 ifeq ($(USE_ENZYME_LLVM),yes)
-  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME) -mllvm -enzyme-rematerialize=0
+  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME)
 else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
@@ -100,44 +101,50 @@ ifeq ($(FORWARD),yes)
 endif
 
 
+ifeq ($(USE_ENZYME_LLVM),yes)
+
 # Optimization Flags
-# ifeq ($(NEWCACHE),yes)
-#   CFLAGS += -mllvm -enzyme-new-cache=1
-# else
-#   CFLAGS += -mllvm -enzyme-new-cache=0
-# endif
+ifeq ($(NEWCACHE),yes)
+  CFLAGS += -mllvm -enzyme-new-cache=1
+else
+  CFLAGS += -mllvm -enzyme-new-cache=0
+endif
 
+ifeq ($(MINCUT),yes)
+  CFLAGS += -mllvm -enzyme-mincut-cache=1
+else
+  CFLAGS += -mllvm -enzyme-mincut-cache=0
+endif
 
-# ifeq ($(MINCUT),yes)
-#   CFLAGS += -mllvm -enzyme-mincut-cache=1
-# else
-#   CFLAGS += -mllvm -enzyme-mincut-cache=0
-# endif
+ifeq ($(AA),yes)
+  CFLAGS += -mllvm -enzyme-aggressive-aa=1
+else
+  CFLAGS += -mllvm -enzyme-aggressive-aa=0
+endif
 
-# ifeq ($(AA),yes)
-#   CFLAGS += -mllvm -enzyme-aggressive-aa=1
-# else
-#   CFLAGS += -mllvm -enzyme-aggressive-aa=0
-# endif
+ifeq ($(PHISTRUCT),yes)
+  CFLAGS += -mllvm -enzyme-phi-restructure=1
+else
+  CFLAGS += -mllvm -enzyme-phi-restructure=0
+endif
 
+ifeq ($(INLINE),yes)
+  CFLAGS += -DALWAYS_INLINE=1
+endif
 
-# ifeq ($(PHISTRUCT),yes)
-#   CFLAGS += -mllvm -enzyme-phi-restructure=1
-# else
-#   CFLAGS += -mllvm -enzyme-phi-restructure=0
-# endif
+ifeq ($(CACHELICM),yes)
+  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=1
+else
+  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=0
+endif
 
-# ifeq ($(INLINE),yes)
-#   CFLAGS += -DALWAYS_INLINE=1
-# endif
+ifeq ($(REMATERIALIZER),yes)
+	CFLAGS +=  -mllvm -enzyme-rematerialize=1
+else
+	CFLAGS +=  -mllvm -enzyme-rematerialize=0
+end
 
-# ifeq ($(CACHELICM),yes)
-#   CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=1
-# else
-#   CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=0
-# endif
-
-
+end
 
 #===============================================================================
 # Targets to Build
