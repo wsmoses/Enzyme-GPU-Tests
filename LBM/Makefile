@@ -40,9 +40,9 @@ SM_VERSION  = 120
 
 program = lbm
 
-source = args.c lbm.cu parboil_cuda.c main.cc
+source = args.cc lbm.cu parboil_cuda.cc main.cc
 
-obj = $(source:.cu=.o)
+obj = $(patsubst %.cc,%.o,$(patsubst %.cu,%.o,$(source)))
 
 #===============================================================================
 # Sets Flags
@@ -63,7 +63,7 @@ else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
   endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda -x cuda
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -159,12 +159,15 @@ endif
 #===============================================================================
 
 $(program): $(source) Makefile
-	$(CC) $(CFLAGS) args.c lbm.cu lbm_kernel.cu parboil_cuda.c main.cc $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) args.cc lbm.cu lbm_kernel.cu parboil_cuda.cc main.cc $(LDFLAGS) -o $@
 
 $(program)-llvm: $(obj) lbm_kernel.cu Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
 %.o: %.cu lbm.h main.h parboil.h lbm_macros.h lbm_kernel.cu Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cc lbm.h main.h parboil.h lbm_macros.h Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
