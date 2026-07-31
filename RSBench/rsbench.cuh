@@ -7,11 +7,19 @@
 #include<stdint.h>
 #include<float.h>
 #include<assert.h>
-#include<cuda.h>
+
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <thrust/reduce.h>
 #include <thrust/count.h>
 #include <thrust/sort.h>
-#include <chrono> 
+#include <chrono>
+#include<cuda.h>
+
+#pragma pop_macro("__noinline__")
+
+#include<cuda.h>
 
 #define PI 3.14159265359
 
