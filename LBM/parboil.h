@@ -4,6 +4,16 @@
 #ifndef PARBOIL_HEADER
 #define PARBOIL_HEADER
 
+/* CL/cl_platform.h includes <xmmintrin.h> from inside its own extern "C"
+ * block, which drags the libstdc++ headers in with C language linkage.  That
+ * is harmless normally, but clang's cuda_wrappers/bits/c++config.h defines two
+ * overloads of std::__glibcxx_assert_fail, and overloads are illegal under C
+ * linkage.  Pull the C++ headers in first so their include guards are already
+ * set by the time <CL/cl.h> is reached. */
+#ifdef __cplusplus
+#include <cstdlib>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
