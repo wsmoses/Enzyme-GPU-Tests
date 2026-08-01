@@ -32,11 +32,11 @@
 #define DFL2 (1.0f/18.0f)
 #define DFL3 (1.0f/36.0f)
 
-// includes, kernels
-#include "lbm_kernel.cu"
-
 #define REAL_MARGIN (CALC_INDEX(0, 0, 2, 0) - CALC_INDEX(0,0,0,0))
 #define TOTAL_MARGIN (2*PADDED_X*PADDED_Y*N_CELL_ENTRIES)
+
+// includes, kernels
+#include "lbm_kernel.cu"
 
 /******************************************************************************/
 
@@ -46,7 +46,8 @@ __host__ static void kern(float* src, float* dst) {
 	dimGrid.x = SIZE_Y;
 	dimGrid.y = SIZE_Z;
 	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(
+		src - REAL_MARGIN, dst - REAL_MARGIN);
 #ifndef ALLOW_AD
 	CUDA_ERRCK;
 #endif

@@ -196,7 +196,7 @@ __attribute__((always_inline)) __device__ void performStreamCollide_kernel( void
 
 __global__ void performStreamCollide_kernel_wrapper( float* srcGrid, float* dstGrid )
 {
-	performStreamCollide_kernel(srcGrid, dstGrid );
+	performStreamCollide_kernel(srcGrid + REAL_MARGIN, dstGrid + REAL_MARGIN);
 }
 
 #ifdef ALLOW_AD
