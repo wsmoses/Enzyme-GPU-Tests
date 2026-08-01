@@ -113,7 +113,21 @@ __host__ void grad_kern(float* src, float* dsrc, float* dst, float* ddst, void* 
 void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void*)grad_kern };
 #endif
 
+#ifdef BINOMIAL_CHECKPOINTING
+extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
+#endif
+
 void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
+
+#ifdef BINOMIAL_CHECKPOINTING
+	const size_t gridHintSize =
+		TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+		2 * TOTAL_MARGIN * sizeof(float) - REAL_MARGIN * sizeof(float);
+	__enzyme_ptr_size_hint(srcGrid, gridHintSize, 1);
+	__enzyme_ptr_size_hint(dstGrid, gridHintSize, 1);
+
+    __attribute__((enzyme_checkpointing_enable("binomial", BINOMIAL_BUDGET)))
+#endif
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
