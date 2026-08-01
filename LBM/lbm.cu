@@ -40,20 +40,12 @@
 
 /******************************************************************************/
 
-struct PlainDim3 {
-  unsigned x, y, z;
-};
-
-__attribute__((enzyme_inactive)) __attribute__((always_inline)) static dim3
-makeLaunchDim3(unsigned x, unsigned y, unsigned z) {
-	PlainDim3 p = {x, y, z};
-	return *reinterpret_cast<dim3 *>(&p);
-}
-
-__attribute__((always_inline))
 __host__ static void kern(float* src, float* dst) {
-	dim3 dimBlock= makeLaunchDim3(SIZE_X, 1, 1),
-		 dimGrid = makeLaunchDim3(SIZE_Y, SIZE_Z, 1);
+	dim3 dimBlock, dimGrid;
+	dimBlock.x = SIZE_X;
+	dimGrid.x = SIZE_Y;
+	dimGrid.y = SIZE_Z;
+	dimBlock.y = dimBlock.z = dimGrid.z = 1;
 	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
 #ifndef ALLOW_AD
 	CUDA_ERRCK;
