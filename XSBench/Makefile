@@ -37,6 +37,9 @@ CACHELICM   ?= yes
 SELECT      ?= no
 SPECPHI     ?= no
 
+READONLY    ?= yes
+SPLITMULTI  ?= yes
+AFFINEAD    ?= no
 VERIFY      ?= no
 
 DEBUG       = no
@@ -72,12 +75,29 @@ CC := $(CLANG_PATH)
 
 ENZYME_LOAD_FLAGS :=
 ifeq ($(USE_ENZYME_LLVM),yes)
-  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME)
+	ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME)
 else
-  ifeq ($(EMBEDDED_CLANG),no)
-    ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
-  endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda
+	ifeq ($(EMBEDDED_CLANG),no)
+		ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+	endif
+	CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+
+	ifeq ($(READONLY),yes)
+		# Avoid caching loads of pointers that are never overwritten
+		CFLAGS += -mllvm -reactant-mark-readonly
+	endif
+
+	ifeq ($(AFFINEAD),yes)
+		CFLAGS += -mllvm -reactant-pre-ad-lower-affine=0
+	else
+		# Lower affine dialect operations before AD (https://github.com/EnzymeAD/Enzyme/issues/3031)
+		CFLAGS += -mllvm -reactant-pre-ad-lower-affine=1
+	endif
+
+	ifeq ($(SPLITMULTI),yes)
+		# Split certain multi-result ops into separate ops. Can lead to better mincut solutions
+		CFLAGS += -mllvm -reactant-split-multi-results
+	endif
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -178,10 +198,7 @@ endif
 # Targets to Build
 #===============================================================================
 
-$(program): $(source) Makefile
-	$(CC) $(CFLAGS) $(source) $(LDFLAGS) -o $@
-
-$(program)-llvm: $(obj) XSbench_header.cuh Makefile
+$(program): $(obj) XSbench_header.cuh Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
 %.o: %.cu XSbench_header.cuh Makefile

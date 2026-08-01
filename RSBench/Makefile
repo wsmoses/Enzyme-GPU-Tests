@@ -29,6 +29,10 @@ COALESE     ?= yes
 CACHELICM   ?= yes
 ABI         ?= no
 ALLOCATOR   ?= no
+MINCUT      ?= yes
+READONLY    ?= yes
+SPLITMULTI  ?= yes
+AFFINEAD    ?= no
 VERIFY      ?= no
 
 DEBUG       = no
@@ -69,7 +73,24 @@ else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
   endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+
+  ifeq ($(READONLY),yes)
+    # Avoid caching loads of pointers that are never overwritten
+    CFLAGS += -mllvm -reactant-mark-readonly
+  endif
+
+  ifeq ($(AFFINEAD),yes)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=0
+  else
+    # Lower affine dialect operations before AD (https://github.com/EnzymeAD/Enzyme/issues/3031)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=1
+  endif
+
+  ifeq ($(SPLITMULTI),yes)
+    # Split certain multi-result ops into separate ops. Can lead to better mincut solutions
+    CFLAGS += -mllvm -reactant-split-multi-results
+  endif
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -116,11 +137,11 @@ else
   CFLAGS += -mllvm -enzyme-mincut-cache=0
 endif
 
-ifeq ($(AA),yes)
-  CFLAGS += -mllvm -enzyme-aggressive-aa=1
-else
-  CFLAGS += -mllvm -enzyme-aggressive-aa=0
-endif
+# ifeq ($(AA),yes)
+#   CFLAGS += -mllvm -enzyme-aggressive-aa=1
+# else
+#   CFLAGS += -mllvm -enzyme-aggressive-aa=0
+# endif
 
 ifeq ($(PHISTRUCT),yes)
   CFLAGS += -mllvm -enzyme-phi-restructure=1
@@ -150,10 +171,7 @@ endif
 # Targets to Build
 #===============================================================================
 
-$(program): $(source) Makefile
-	$(CC) $(CFLAGS) $(source) $(LDFLAGS) -o $@
-
-$(program)-llvm: $(obj) rsbench.cuh Makefile
+$(program): $(obj) rsbench.cuh Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
 %.o: %.cu rsbench.cuh Makefile

@@ -28,6 +28,9 @@ COALESE     ?= yes
 CACHELICM   ?= yes
 ABI         ?= yes
 ALLOCATOR   ?= no
+READONLY    ?= yes
+SPLITMULTI  ?= yes
+AFFINEAD    ?= yes
 VERIFY      ?= no
 
 DEBUG       = no
@@ -63,7 +66,24 @@ else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
   endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+
+  ifeq ($(READONLY),yes)
+    # Avoid caching loads of pointers that are never overwritten
+    CFLAGS += -mllvm -reactant-mark-readonly
+  endif
+
+  ifeq ($(AFFINEAD),yes)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=0
+  else
+    # Lower affine dialect operations before AD (https://github.com/EnzymeAD/Enzyme/issues/3031)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=1
+  endif
+
+  ifeq ($(SPLITMULTI),yes)
+    # Split certain multi-result ops into separate ops. Can lead to better mincut solutions
+    CFLAGS += -mllvm -reactant-split-multi-results
+  endif
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -158,10 +178,7 @@ endif
 # Targets to Build
 #===============================================================================
 
-$(program): $(source) Makefile
-	$(CC) $(CFLAGS) args.cc lbm.cu lbm_kernel.cu parboil_cuda.cc main.cc $(LDFLAGS) -o $@
-
-$(program)-llvm: $(obj) lbm_kernel.cu Makefile
+$(program): $(obj) lbm_kernel.cu Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
 %.o: %.cu lbm.h main.h parboil.h lbm_macros.h lbm_kernel.cu Makefile
