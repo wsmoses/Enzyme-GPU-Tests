@@ -12,6 +12,7 @@ REACTANT_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/libClangReactan
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
+BACKEND ?= cuda
 
 export CUDA_HOME := $(CUDA_PATH)
 export PATH := $(CUDA_PATH)/bin:$(PATH)
@@ -21,6 +22,9 @@ BLOCKSIZE   ?= 32
 export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = $(BLOCKSIZE)
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
+ifneq ($(filter xla%,$(BACKEND)),)
+	export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
+endif
 SM_VERSION  = 120
 
 
@@ -80,7 +84,11 @@ obj = $(source:.cu=.o)
 
 
 # Linker Flags
-LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) # -lReactantExtra
+LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm
+
+ifneq ($(filter xla%,$(BACKEND)),)
+	LDFLAGS += -L$(REACTANT_EXTRA_PATH) -lReactantExtra
+endif
 
 CC := $(CLANG_PATH)
 
@@ -91,7 +99,7 @@ else
 	ifeq ($(EMBEDDED_CLANG),no)
 		ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
 	endif
-	CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+	CFLAGS += -mllvm -reactant-backend -mllvm $(BACKEND) -mllvm -reactant-dataflow
 
 	ifeq ($(READONLY),yes)
 		# Avoid caching loads of pointers that are never overwritten

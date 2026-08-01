@@ -10,11 +10,15 @@ REACTANT_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/libClangReactan
 CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
 LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
 REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
+BACKEND ?= cuda
 
 export CUDA_HOME := $(CUDA_PATH)
 export PATH := $(CUDA_PATH)/bin:$(PATH)
 export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
-export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
+
+ifneq ($(filter xla%,$(BACKEND)),)
+  export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
+endif
 
 SM_VERSION  = 120
 
@@ -45,7 +49,7 @@ else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
   endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+  CFLAGS += -mllvm -reactant-backend -mllvm $(BACKEND) -mllvm -reactant-dataflow
 
   ifeq ($(READONLY),yes)
     # Avoid caching loads of pointers that are never overwritten
@@ -66,7 +70,11 @@ else
 endif
 
 CFLAGS += -DNDEBUG -I. -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION) -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
-LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH)
+LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm
+
+ifneq ($(filter xla%,$(BACKEND)),)
+  LDFLAGS += -L$(REACTANT_EXTRA_PATH) -lReactantExtra
+endif
 
 source = allocator.cu lulesh-comms.cu lulesh-comms-gpu.cu lulesh.cu
 
