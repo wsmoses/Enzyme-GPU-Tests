@@ -28,6 +28,9 @@ NEWCACHE ?= yes
 OPTIMIZE ?= yes
 RESTRICT ?= yes
 
+READONLY    ?= yes
+SPLITMULTI  ?= yes
+AFFINEAD    ?= no
 SPECPHI ?= no
 SELECT ?= no
 
@@ -42,7 +45,24 @@ else
   ifeq ($(EMBEDDED_CLANG),no)
     ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
   endif
-  CFLAGS += -mllvm -reactant-backend -mllvm cuda
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+
+  ifeq ($(READONLY),yes)
+    # Avoid caching loads of pointers that are never overwritten
+    CFLAGS += -mllvm -reactant-mark-readonly
+  endif
+
+  ifeq ($(AFFINEAD),yes)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=0
+  else
+    # Lower affine dialect operations before AD (https://github.com/EnzymeAD/Enzyme/issues/3031)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=1
+  endif
+
+  ifeq ($(SPLITMULTI),yes)
+    # Split certain multi-result ops into separate ops. Can lead to better mincut solutions
+    CFLAGS += -mllvm -reactant-split-multi-results
+  endif
 endif
 
 CFLAGS += -DNDEBUG -I. -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION) -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -125,10 +145,7 @@ debug: 		FLAGS += $(DFLAGS)
 release: lulesh
 debug: lulesh
 
-lulesh: $(source)
-	$(CC) $(CFLAGS) $(source) $(LDFLAGS) -o $@
-
-lulesh-llvm: allocator.o lulesh.o lulesh-comms.o lulesh-comms-gpu.o
+lulesh: allocator.o lulesh.o lulesh-comms.o lulesh-comms-gpu.o
 	$(CC) $(CFLAGS) allocator.o lulesh.o lulesh-comms.o lulesh-comms-gpu.o -o $@ $(LDFLAGS)
 
 allocator.o: allocator.cu vector.h Makefile
