@@ -232,7 +232,7 @@ $(program): $(obj) lbm_kernel.cu Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(program) *.o *.re_export
+	rm -rf $(program) *.o *.re_export *.mlir *.ll *.bc
 
 run: $(program)
 	./$(program) 10 -o out.txt
