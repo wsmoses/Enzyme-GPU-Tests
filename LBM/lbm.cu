@@ -40,13 +40,15 @@
 
 /******************************************************************************/
 
-__host__ static void kern(float* src, float* dst) {
+#define CUDA_LBM_Grid float __attribute__((address_space(1)))*
+
+__host__ static void kern(CUDA_LBM_Grid src, CUDA_LBM_Grid dst) {
 	dim3 dimBlock, dimGrid;
 	dimBlock.x = SIZE_X;
 	dimGrid.x = SIZE_Y;
 	dimGrid.y = SIZE_Z;
 	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>((float*)src, (float*)dst);
 #ifndef ALLOW_AD
 	CUDA_ERRCK;
 #endif
@@ -114,17 +116,20 @@ void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void
 #endif
 
 #ifdef BINOMIAL_CHECKPOINTING
-extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
+extern "C" void __enzyme_ptr_size_hint(CUDA_LBM_Grid, size_t);
 #endif
 
-void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
+void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
+								 CUDA_LBM_Grid srcGrid,
+								 CUDA_LBM_Grid dstGrid ) {
 
 #ifdef BINOMIAL_CHECKPOINTING
 	const size_t gridHintSize =
 		TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
 		2 * TOTAL_MARGIN * sizeof(float) - REAL_MARGIN * sizeof(float);
-	__enzyme_ptr_size_hint(srcGrid, gridHintSize, 1);
-	__enzyme_ptr_size_hint(dstGrid, gridHintSize, 1);
+
+	__enzyme_ptr_size_hint(srcGrid, gridHintSize);
+	__enzyme_ptr_size_hint(dstGrid, gridHintSize);
 
     __attribute__((enzyme_checkpointing_enable("binomial", BINOMIAL_BUDGET)))
 #endif
@@ -158,7 +163,9 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 
 	cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float), cudaMemcpyDeviceToHost);
 #endif
-	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
+	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps,
+					  (CUDA_LBM_Grid)srcGrid, (CUDA_LBM_Grid)srcGridb,
+					  (CUDA_LBM_Grid)dstGrid, (CUDA_LBM_Grid)dstGridb);
 #ifdef ALLOCATOR
 	delete A;
 #endif
@@ -176,7 +183,7 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 	cudaMemcpy(&cache[0], srcGrid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
 #endif
 
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, (CUDA_LBM_Grid)srcGrid, (CUDA_LBM_Grid)dstGrid);
 
 #ifdef VERIFY
 	constexpr size_t N = 1;
@@ -187,7 +194,7 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 	cache[start + REAL_MARGIN] += PREC;
 	cudaMemcpy(srcGrid - REAL_MARGIN, &cache[0], size, cudaMemcpyHostToDevice);
 	
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, (CUDA_LBM_Grid)srcGrid, (CUDA_LBM_Grid)dstGrid);
 	
 	float* here2 = new float[N];
 	cudaMemcpy(&here2[0], srcGrid + start, N*sizeof(float), cudaMemcpyDeviceToHost);
