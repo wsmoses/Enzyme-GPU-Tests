@@ -195,7 +195,8 @@ __attribute__((always_inline)) __device__ void performStreamCollide_kernel( void
 
 
 
-__global__ void performStreamCollide_kernel_wrapper( float* srcGrid, float* dstGrid )
+__global__ void performStreamCollide_kernel_wrapper(
+		float* __restrict__ srcGrid, float* __restrict__ dstGrid )
 {
 	performStreamCollide_kernel(srcGrid, dstGrid);
 }

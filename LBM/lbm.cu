@@ -118,7 +118,8 @@ void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void
 extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
 #endif
 
-void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
+void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
+		LBM_Grid __restrict srcGrid, LBM_Grid __restrict dstGrid ) {
 
 #ifdef BINOMIAL_CHECKPOINTING
 	const size_t gridHintSize =
@@ -142,7 +143,9 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
 
 extern void __enzyme_autodiff(void *, ...);
 
-__host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb ) {
+__host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
+		LBM_Grid __restrict srcGrid, LBM_Grid srcGridb,
+		LBM_Grid __restrict dstGrid, LBM_Grid dstGridb ) {
 
 	constexpr size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
 	constexpr size_t start = 15489;// + REAL_MARGIN;
