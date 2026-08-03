@@ -38,6 +38,7 @@ VERIFY      ?= no
 # Binomial checkpointing of the outer kernel loop (requires FORWARD=no)
 BINOMIAL        ?= no
 BINOMIAL_BUDGET ?= 4
+MINCUT          ?= yes
 
 DEBUG       = no
 PROFILE     = no
@@ -162,6 +163,11 @@ ifeq ($(BINOMIAL),yes)
   CFLAGS += -DBINOMIAL_CHECKPOINTING=1 -DBINOMIAL_BUDGET=$(BINOMIAL_BUDGET)
 endif
 
+ifeq ($(MINCUT),yes)
+  CFLAGS += -DENZYME_MINCUT=1
+else
+  CFLAGS += -DENZYME_MINCUT=0
+endif
 
 # Optimization Flags
 # ifeq ($(NEWCACHE),yes)

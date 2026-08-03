@@ -128,6 +128,7 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
 
     __attribute__((enzyme_checkpointing_enable("binomial", BINOMIAL_BUDGET)))
 #endif
+    __attribute__((enzyme_set_mincut(ENZYME_MINCUT)))
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
