@@ -15,6 +15,7 @@
 #include <string.h>
 #include <float.h>
 #include <cuda_runtime_api.h>
+#include <enzyme/device_mirror>
 // includes, project
 #include "main.h"
 #include "lbm.h"
@@ -119,7 +120,10 @@ extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
 #endif
 
 void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
+		const int* __restrict deviceTimeSteps,
 		LBM_Grid __restrict srcGrid, LBM_Grid __restrict dstGrid ) {
+	const int mirroredTimeSteps =
+		__enzyme_device_mirror(nTimeSteps, deviceTimeSteps);
 
 #ifdef BINOMIAL_CHECKPOINTING
 	const size_t gridHintSize =
@@ -135,6 +139,7 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
     __attribute__((enzyme_set_mincut(ENZYME_MINCUT)))
 #endif
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
+	for (unsigned int i=0; i<mirroredTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
 	}
@@ -142,8 +147,10 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
 
 
 extern void __enzyme_autodiff(void *, ...);
+extern int enzyme_const;
 
 __host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
+		const int* __restrict deviceTimeSteps,
 		LBM_Grid __restrict srcGrid, LBM_Grid srcGridb,
 		LBM_Grid __restrict dstGrid, LBM_Grid dstGridb ) {
 
@@ -166,7 +173,9 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
 
 	cudaMemcpy(&here[0], srcGrid + REAL_MARGIN + start, N * sizeof(float), cudaMemcpyDeviceToHost);
 #endif
-	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
+	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps,
+			enzyme_const, deviceTimeSteps,
+			srcGrid, srcGridb, dstGrid, dstGridb);
 #ifdef ALLOCATOR
 	delete A;
 #endif
@@ -184,7 +193,7 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
 	cudaMemcpy(&cache[0], srcGrid, size, cudaMemcpyDeviceToHost);
 #endif
 
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, deviceTimeSteps, srcGrid, dstGrid);
 
 #ifdef VERIFY
 	constexpr size_t N = 1;
@@ -195,7 +204,7 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
 	cache[start + REAL_MARGIN] += PREC;
 	cudaMemcpy(srcGrid, &cache[0], size, cudaMemcpyHostToDevice);
 	
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, deviceTimeSteps, srcGrid, dstGrid);
 	
 	float* here2 = new float[N];
 	cudaMemcpy(&here2[0], srcGrid + REAL_MARGIN + start, N*sizeof(float), cudaMemcpyDeviceToHost);
