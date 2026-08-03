@@ -15,7 +15,10 @@ REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
 
 export CUDA_HOME := $(CUDA_PATH)
 export PATH := $(CUDA_PATH)/bin:$(PATH)
-export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
+# The block size the kernels are launched with in simulation.cu, so the raised
+# kernels are built for the same shape the hand-written ones run at.
+BLOCKSIZE   ?= 32
+export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = $(BLOCKSIZE)
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
 OPTIMIZE    ?= yes

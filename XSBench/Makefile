@@ -15,7 +15,10 @@ REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
 
 export CUDA_HOME := $(CUDA_PATH)
 export PATH := $(CUDA_PATH)/bin:$(PATH)
-export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
+# The block size the kernels are launched with in Simulation.cu, so the raised
+# kernels are built for the same shape the hand-written ones run at.
+BLOCKSIZE   ?= 32
+export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = $(BLOCKSIZE)
 export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
 SM_VERSION  = 120
@@ -40,6 +43,14 @@ SPECPHI     ?= no
 READONLY    ?= yes
 SPLITMULTI  ?= yes
 AFFINEAD    ?= no
+RMATOMICS   ?= no
+SORTBLOCK   ?= no
+# Cap on registers per thread. The reverse kernel is latency-bound on scattered
+# lookups, so occupancy can be worth more than the spills a cap introduces.
+MAXREG      ?= no
+# Promote the reverse pass's tape allocation out of the device heap. Without it
+# the cache for the nuclide loop is a per-thread malloc/free on every lookup.
+HEAP2STACK  ?= no
 VERIFY      ?= no
 
 DEBUG       = no
@@ -98,9 +109,29 @@ else
 		# Split certain multi-result ops into separate ops. Can lead to better mincut solutions
 		CFLAGS += -mllvm -reactant-split-multi-results
 	endif
+
+	ifeq ($(RMATOMICS),yes)
+		# Turn the atomics the reverse pass introduces back into load/store where
+		# polyhedral analysis proves no race exists
+		CFLAGS += -mllvm -reactant-remove-atomics=1
+	endif
+
+	ifeq ($(SORTBLOCK),yes)
+		# Cluster the resulting loads at the top of their block so they overlap
+		# instead of forming a chain of dependent round trips
+		CFLAGS += -mllvm -reactant-sort-block-memory=1
+	endif
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
+
+ifneq ($(MAXREG),no)
+	CFLAGS += -Xcuda-ptxas -maxrregcount=$(MAXREG)
+endif
+
+ifneq ($(HEAP2STACK),no)
+	CFLAGS += -mllvm -max-heap-to-stack-size=$(HEAP2STACK)
+endif
 
 #CFLAGS += -mllvm -simplifycfg-sink-common=0
 
