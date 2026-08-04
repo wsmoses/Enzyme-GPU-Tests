@@ -107,6 +107,14 @@ else
   else
     CFLAGS += -mllvm -reactant-sort-block-memory=0
   endif
+
+  # Only the Reactant plugin understands enzyme_set_mincut, so ENZYME_MINCUT is
+  # defined exactly when the feature is available (see the guard in lbm.cu)
+  ifeq ($(MINCUT),yes)
+    CFLAGS += -DENZYME_MINCUT=1
+  else
+    CFLAGS += -DENZYME_MINCUT=0
+  endif
 endif
 
 CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
@@ -161,12 +169,6 @@ endif
 # Binomial checkpointing Flags
 ifeq ($(BINOMIAL),yes)
   CFLAGS += -DBINOMIAL_CHECKPOINTING=1 -DBINOMIAL_BUDGET=$(BINOMIAL_BUDGET)
-endif
-
-ifeq ($(MINCUT),yes)
-  CFLAGS += -DENZYME_MINCUT=1
-else
-  CFLAGS += -DENZYME_MINCUT=0
 endif
 
 # Optimization Flags

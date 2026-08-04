@@ -128,7 +128,10 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
 
     __attribute__((enzyme_checkpointing_enable("binomial", BINOMIAL_BUDGET)))
 #endif
+#ifdef ENZYME_MINCUT
+    // Defined only on the Reactant/MLIR path; ClangEnzyme does not know this attribute
     __attribute__((enzyme_set_mincut(ENZYME_MINCUT)))
+#endif
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
