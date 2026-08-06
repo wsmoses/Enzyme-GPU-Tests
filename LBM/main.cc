@@ -29,6 +29,13 @@ static int* CUDA_timeSteps;
 /*############################################################################*/
 
 struct pb_TimerSet timers;
+
+__attribute__((noinline))
+static long now_us(){
+    timeval t; gettimeofday(&t, nullptr);
+    return t.tv_sec * 1000000L + t.tv_usec;
+}
+
 int main( int nArgs, char* arg[] ) {
 	MAIN_Param param;
 	int t,i;
@@ -77,19 +84,17 @@ int main( int nArgs, char* arg[] ) {
 	  printf("%p %p %p %p\n", CUDA_srcGrid,  CUDA_srcGrid, CUDA_dstGrid, CUDA_dstGrid);
         }
 */
-    for(i=0;i<5;++i)
+    for( i=0; i<5; ++i)
     {
-         struct timeval stop, start;
-        gettimeofday(&start, NULL);  
-           pb_SwitchToTimer(&timers, pb_TimerID_KERNEL);
-         
-                CUDA_LBM_kernel_loop(param.nTimeSteps, CUDA_timeSteps, CUDA_srcGrid, CUDA_srcGridb, CUDA_dstGrid, CUDA_dstGridb );
-            cudaDeviceSynchronize();
-         pb_SwitchToTimer(&timers, pb_TimerID_COMPUTE);
-                gettimeofday(&stop, NULL);
-                printf("nt: %d took %lu us\n", param.nTimeSteps, (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        long start = now_us();
+        pb_SwitchToTimer(&timers, pb_TimerID_KERNEL);
+        CUDA_LBM_kernel_loop(param.nTimeSteps, CUDA_timeSteps, CUDA_srcGrid, CUDA_srcGridb, CUDA_dstGrid, CUDA_dstGridb );
+        cudaDeviceSynchronize();
+        pb_SwitchToTimer(&timers, pb_TimerID_COMPUTE);
+        long end = now_us();
+        printf("nt: %d took %lu us\n", param.nTimeSteps,end-start);
     }
-    	    MAIN_finalize( &param );
+    MAIN_finalize( &param );
 
 	LBM_freeGrid( (float**) &TEMP_srcGrid );
 
