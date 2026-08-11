@@ -33,6 +33,7 @@ SPLITMULTI  ?= yes
 AFFINEAD    ?= yes
 RMATOMICS   ?= yes
 SORTBLOCK   ?= yes
+HOISTALLOC  ?= yes
 VERIFY      ?= no
 
 # Binomial checkpointing of the outer kernel loop (requires FORWARD=no)
@@ -106,6 +107,13 @@ else
     CFLAGS += -mllvm -reactant-sort-block-memory=1
   else
     CFLAGS += -mllvm -reactant-sort-block-memory=0
+  endif
+
+  ifeq ($(HOISTALLOC),yes)
+    # Move the allocations the reverse pass makes per iteration out of the loop
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=1
+  else
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=0
   endif
 
   # Only the Reactant plugin understands enzyme_set_mincut, so ENZYME_MINCUT is
