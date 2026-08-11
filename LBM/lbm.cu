@@ -24,6 +24,10 @@
 #include <mcuda.h>
 #endif
 
+#include <errno.h>
+
+#include <assert.h>
+
 #define DFL1 (1.0f/ 3.0f)
 #define DFL2 (1.0f/18.0f)
 #define DFL3 (1.0f/36.0f)
@@ -36,7 +40,6 @@
 
 /******************************************************************************/
 
-__attribute__((noinline))
 __host__ static void kern(float* src, float* dst) {
 	dim3 dimBlock, dimGrid;
 	dimBlock.x = SIZE_X;
@@ -44,7 +47,9 @@ __host__ static void kern(float* src, float* dst) {
 	dimGrid.y = SIZE_Z;
 	dimBlock.y = dimBlock.z = dimGrid.z = 1;
 	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+#ifndef ALLOW_AD
 	CUDA_ERRCK;
+#endif
 }
 
 class Allocator {
@@ -72,7 +77,7 @@ public:
 };
 Allocator* A;
 
-#ifdef ALLOW_AD
+#ifdef ENZYME_LLVM_AD
 __host__ void* aug_kern(float* src, float* dsrc, float* dst, float* ddst) {
 	dim3 dimBlock, dimGrid;
 	dimBlock.x = SIZE_X;
@@ -108,7 +113,25 @@ __host__ void grad_kern(float* src, float* dsrc, float* dst, float* ddst, void* 
 void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void*)grad_kern };
 #endif
 
+#ifdef BINOMIAL_CHECKPOINTING
+extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
+#endif
+
 void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
+
+#ifdef BINOMIAL_CHECKPOINTING
+	const size_t gridHintSize =
+		TOTAL_PADDED_CELLS * N_CELL_ENTRIES * sizeof(float) +
+		2 * TOTAL_MARGIN * sizeof(float) - REAL_MARGIN * sizeof(float);
+	__enzyme_ptr_size_hint(srcGrid, gridHintSize, 1);
+	__enzyme_ptr_size_hint(dstGrid, gridHintSize, 1);
+
+    __attribute__((enzyme_checkpointing_enable("binomial", BINOMIAL_BUDGET)))
+#endif
+#ifdef ENZYME_MINCUT
+    // Defined only on the Reactant/MLIR path; ClangEnzyme does not know this attribute
+    __attribute__((enzyme_set_mincut(ENZYME_MINCUT)))
+#endif
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
@@ -393,6 +416,7 @@ void LBM_showGridStatistics( LBM_Grid grid ) {
 
 static void storeValue( FILE* file, OUTPUT_PRECISION* v ) {
 	const int litteBigEndianTest = 1;
+	assert(file);
 	if( (*((unsigned char*) &litteBigEndianTest)) == 0 ) {         /* big endian */
 		const char* vPtr = (char*) v;
 		char buffer[sizeof( OUTPUT_PRECISION )];
@@ -415,6 +439,10 @@ void LBM_storeVelocityField( LBM_Grid grid, const char* filename,
 	OUTPUT_PRECISION rho, ux, uy, uz;
 
 	FILE* file = fopen( filename, (binary ? "wb" : "w") );
+	if (!file) {
+           fprintf(stderr, "can't open %s: %s\n", filename, strerror(errno));
+	   exit(1);
+	}
 
 	SWEEP_VAR
 	SWEEP_START(0,0,0,SIZE_X,SIZE_Y,SIZE_Z)

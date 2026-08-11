@@ -6,7 +6,7 @@
  *cr
  ***************************************************************************/
 
-#ifndef _LBM_MARCOS_H
+#ifndef _LBM_MACROS_H_
 #define _LBM_MACROS_H_
 
 #define OMEGA (1.95f)

@@ -2,36 +2,58 @@
 # User Options
 #===============================================================================
 
-CUDA_PATH ?= /usr/local/cuda-11.3
+CUDA_PATH ?= /usr/local/cuda-12.9
 
-ENZYME_PATH ?= /home/wsmoses/Enzyme/enzyme/build13Fast/Enzyme/ClangEnzyme-13.so
-CLANG_PATH ?= /home/wsmoses/llvm-project/buildfast/bin/clang++
+EMBEDDED_CLANG ?= no
+USE_ENZYME_LLVM ?= no
+
+CLANG_ENZYME ?= $(HOME)/git/Enzyme/enzyme/buildRelease/Enzyme/ClangEnzyme-24.so
+REACTANT_PATH ?= $(HOME)/git/Reactant/enzyme/buildRelease/Enzyme/libClangReactant-24.so
+CLANG_PATH ?= $(HOME)/git/Enzyme/llvm-project/buildRelease/bin/clang++
+LIB_RAISE_PATH ?= $(HOME)/git/Enzyme-JaX/bazel-bin/libRaise.so
+REACTANT_EXTRA_PATH ?= $(HOME)/git/Reactant.jl/deps/ReactantExtra/bazel-bin/
+
+export REACTANT_DEBUG=1
+export PATH := $(CUDA_PATH)/bin:$(PATH)
+export POLYGEIST_GPU_KERNEL_BLOCK_SIZE = 128
+export LD_LIBRARY_PATH := $(REACTANT_EXTRA_PATH):$(LD_LIBRARY_PATH)
 
 OPTIMIZE    ?= yes
 
 NEWCACHE    ?= yes
 AA          ?= no
 PHISTRUCT   ?= no
-FORWARD     ?= no
+FORWARD     ?= yes
 COALESE     ?= yes
 CACHELICM   ?= yes
 ABI         ?= yes
-ALLOCATOR   ?= yes
+ALLOCATOR   ?= no
+READONLY    ?= yes
+SPLITMULTI  ?= yes
+AFFINEAD    ?= yes
+RMATOMICS   ?= yes
+SORTBLOCK   ?= yes
+HOISTALLOC  ?= yes
 VERIFY      ?= no
+
+# Binomial checkpointing of the outer kernel loop (requires FORWARD=no)
+BINOMIAL        ?= no
+BINOMIAL_BUDGET ?= 4
+MINCUT          ?= yes
 
 DEBUG       = no
 PROFILE     = no
-SM_VERSION  = 60
+SM_VERSION  = 120
 
 #===============================================================================
 # Program name & source code list
 #===============================================================================
 
-program = rsbench
+program = lbm
 
-source = lbm.cu main.cc parboil_cuda.c args.c
+source = args.cc lbm.cu parboil_cuda.cc main.cc
 
-obj = $(source:.cu=.o)
+obj = $(patsubst %.cc,%.o,$(patsubst %.cu,%.o,$(source)))
 
 #===============================================================================
 # Sets Flags
@@ -44,16 +66,75 @@ CFLAGS := -mllvm -max-heap-to-stack-size=1000000 -I $(CUDA_PATH)/include -I .
 
 
 CC := $(CLANG_PATH)
-CFLAGS += -ffast-math -fno-experimental-new-pass-manager --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 -Xclang -load -Xclang $(ENZYME_PATH)
+
+ENZYME_LOAD_FLAGS :=
+ifeq ($(USE_ENZYME_LLVM),yes)
+  ENZYME_LOAD_FLAGS += -fplugin=$(CLANG_ENZYME)
+else
+  ifeq ($(EMBEDDED_CLANG),no)
+    ENZYME_LOAD_FLAGS += -fplugin=$(REACTANT_PATH) -mllvm -raising-plugin-path -mllvm $(LIB_RAISE_PATH)
+  endif
+  CFLAGS += -mllvm -reactant-backend -mllvm cuda -mllvm -reactant-dataflow
+
+  ifeq ($(READONLY),yes)
+    # Avoid caching loads of pointers that are never overwritten
+    CFLAGS += -mllvm -reactant-mark-readonly
+  endif
+
+  ifeq ($(AFFINEAD),yes)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=0
+  else
+    # Lower affine dialect operations before AD (https://github.com/EnzymeAD/Enzyme/issues/3031)
+    CFLAGS += -mllvm -reactant-pre-ad-lower-affine=1
+  endif
+
+  ifeq ($(SPLITMULTI),yes)
+    # Split certain multi-result ops into separate ops. Can lead to better mincut solutions
+    CFLAGS += -mllvm -reactant-split-multi-results
+  endif
+
+  ifeq ($(RMATOMICS),yes)
+    # Turn the atomics the reverse pass introduces back into load/store where
+    # polyhedral analysis proves no race exists
+    CFLAGS += -mllvm -reactant-remove-atomics=1
+  else
+    CFLAGS += -mllvm -reactant-remove-atomics=0
+  endif
+
+  ifeq ($(SORTBLOCK),yes)
+    # Cluster the resulting loads at the top of their block so they overlap
+    # instead of forming a chain of dependent round trips
+    CFLAGS += -mllvm -reactant-sort-block-memory=1
+  else
+    CFLAGS += -mllvm -reactant-sort-block-memory=0
+  endif
+
+  ifeq ($(HOISTALLOC),yes)
+    # Move the allocations the reverse pass makes per iteration out of the loop
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=1
+  else
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=0
+  endif
+
+  # Only the Reactant plugin understands enzyme_set_mincut, so ENZYME_MINCUT is
+  # defined exactly when the feature is available (see the guard in lbm.cu)
+  ifeq ($(MINCUT),yes)
+    CFLAGS += -DENZYME_MINCUT=1
+  else
+    CFLAGS += -DENZYME_MINCUT=0
+  endif
+endif
+
+CFLAGS += -ffast-math --cuda-path=$(CUDA_PATH) -L$(CUDA_PATH)/lib64 --cuda-gpu-arch=sm_$(SM_VERSION)  -std=c++11 $(ENZYME_LOAD_FLAGS) -fno-exceptions
   
 
 # Linker Flags
-LDFLAGS = "-lcudart_static" "-ldl" "-lrt" -lpthread -lm
+LDFLAGS = -lcudart_static "-ldl" "-lrt" -lpthread -lm -L$(REACTANT_EXTRA_PATH) # -lReactantExtra
 
 # Debug Flags
 ifeq ($(DEBUG),yes)
-  CFLAGS += -g -G
-  LDFLAGS += -g -G
+  CFLAGS += -g
+  LDFLAGS += -g
 endif
 
 ifeq ($(ALLOCATOR),yes)
@@ -66,6 +147,7 @@ endif
 
 ifeq ($(ABI),yes)
   CFLAGS += -DABI
+  CFLAGS += -DSIZE=20
 else
   CFLAGS += -DSIZE=8
 endif
@@ -86,45 +168,52 @@ endif
 ifeq ($(FORWARD),yes)
   CFLAGS += 
 else
-  CFLAGS += -DALLOW_AD=1 
+  CFLAGS += -DALLOW_AD=1
+  ifeq ($(USE_ENZYME_LLVM),yes)
+    CFLAGS += -DENZYME_LLVM_AD=1
+  endif
 endif
 
+# Binomial checkpointing Flags
+ifeq ($(BINOMIAL),yes)
+  CFLAGS += -DBINOMIAL_CHECKPOINTING=1 -DBINOMIAL_BUDGET=$(BINOMIAL_BUDGET)
+endif
 
 # Optimization Flags
-ifeq ($(NEWCACHE),yes)
-  CFLAGS += -mllvm -enzyme-new-cache=1 -mllvm -enzyme-mincut-cache=1
-  ifeq ($(ABI),yes)
-    CFLAGS += -DSIZE=20
-  endif
-else
-  CFLAGS += -mllvm -enzyme-new-cache=0 -mllvm -enzyme-mincut-cache=0
-  ifeq ($(ABI),yes)
-    CFLAGS += -DSIZE=80
-  endif
-endif
+# ifeq ($(NEWCACHE),yes)
+#   CFLAGS += -mllvm -enzyme-new-cache=1 -mllvm -enzyme-mincut-cache=1
+#   ifeq ($(ABI),yes)
+#     CFLAGS += -DSIZE=20
+#   endif
+# else
+#   CFLAGS += -mllvm -enzyme-new-cache=0 -mllvm -enzyme-mincut-cache=0
+#   ifeq ($(ABI),yes)
+#     CFLAGS += -DSIZE=80
+#   endif
+# endif
 
-ifeq ($(AA),yes)
-  CFLAGS += -mllvm -enzyme-aggressive-aa=1
-else
-  CFLAGS += -mllvm -enzyme-aggressive-aa=0
-endif
+# ifeq ($(AA),yes)
+#   CFLAGS += -mllvm -enzyme-aggressive-aa=1
+# else
+#   CFLAGS += -mllvm -enzyme-aggressive-aa=0
+# endif
 
 
-ifeq ($(PHISTRUCT),yes)
-  CFLAGS += -mllvm -enzyme-phi-restructure=1
-else
-  CFLAGS += -mllvm -enzyme-phi-restructure=0
-endif
+# ifeq ($(PHISTRUCT),yes)
+#   CFLAGS += -mllvm -enzyme-phi-restructure=1
+# else
+#   CFLAGS += -mllvm -enzyme-phi-restructure=0
+# endif
 
-ifeq ($(COALESE),yes)
-  CFLAGS += -mllvm -enzyme-coalese
-endif
+# ifeq ($(COALESE),yes)
+#   CFLAGS += -mllvm -enzyme-coalese
+# endif
 
-ifeq ($(CACHELICM),yes)
-  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=1
-else
-  CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=0
-endif
+# ifeq ($(CACHELICM),yes)
+#   CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=1
+# else
+#   CFLAGS +=  -mllvm -enzyme-loop-invariant-cache=0
+# endif
 
 
 
@@ -135,15 +224,14 @@ endif
 $(program): $(obj) lbm_kernel.cu Makefile
 	$(CC) $(CFLAGS) $(obj) -o $@ $(LDFLAGS)
 
-%.o: %.cc lbm_kernel.cu Makefile
+%.o: %.cu lbm.h main.h parboil.h lbm_macros.h lbm_kernel.cu Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.cu lbm_kernel.cu Makefile
+%.o: %.cc lbm.h main.h parboil.h lbm_macros.h Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
-
 
 clean:
-	rm -rf rsbench $(obj)
+	rm -rf $(program) *.o *.re_export
 
-run:
-	./rsbench
+run: $(program)
+	./$(program) 10 -o out.txt

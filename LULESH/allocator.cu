@@ -9,8 +9,13 @@
 */
 
 #include <allocator.h>
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <stack>
 #include <map>
+
+#pragma pop_macro("__noinline__")
 #include <vector.h>
 
 template< typename T >

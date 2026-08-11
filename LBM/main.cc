@@ -18,6 +18,7 @@
 //#include <chrono>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 /*############################################################################*/
 static LBM_Grid CUDA_srcGrid, CUDA_dstGrid;
@@ -126,6 +127,7 @@ void MAIN_parseCommandLine( int nArgs, char* arg[], MAIN_Param* param, struct pb
 	else param->obstacleFilename = NULL;
 
         param->resultFilename = params->outFile;
+	assert(param->resultFilename);
 }
 
 /*############################################################################*/
@@ -206,6 +208,7 @@ void MAIN_finalize( const MAIN_Param* param ) {
         pb_SwitchToTimer(&timers, pb_TimerID_COMPUTE);
 	LBM_showGridStatistics( TEMP_srcGrid );
 
+	assert(param->resultFilename);
 	LBM_storeVelocityField( TEMP_srcGrid, param->resultFilename, TRUE );
 
 	LBM_freeGrid( (float**) &TEMP_srcGrid );

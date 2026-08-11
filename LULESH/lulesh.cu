@@ -65,9 +65,14 @@ Additional BSD Notice
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+
+#pragma pop_macro("__noinline__")
 
 #include <util.h>
 #include <sm_utils.inl>
@@ -5024,7 +5029,7 @@ void CalcTimeConstraintsForElems(Domain* domain)
     const int dimBlock = 128;
     int dimGrid=std::min(max_dimGrid,PAD_DIV(length,dimBlock));
 
-    cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
+    // cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
 
     Vector_d<Real_t>* dev_mindtcourant= Allocator< Vector_d<Real_t> >::allocate(dimGrid);
     Vector_d<Real_t>* dev_mindthydro  = Allocator< Vector_d<Real_t> >::allocate(dimGrid);

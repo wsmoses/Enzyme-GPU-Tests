@@ -1,7 +1,12 @@
 #pragma once
 
+#pragma push_macro("__noinline__")
+#undef __noinline__
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+
+#pragma pop_macro("__noinline__")
 
 template <class T>
 class Vector_h;
