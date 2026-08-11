@@ -55,7 +55,10 @@ void CUDA_LBM_getDeviceGrid( float** d_grid, float** h_grid );
 #if 0
 void CUDA_LBM_performStreamCollide( LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb );
 #endif
-void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb );
+void CUDA_LBM_kernel_loop( int nTimeSteps,
+                          const int* __restrict deviceTimeSteps,
+                          LBM_Grid __restrict srcGrid, LBM_Grid srcGridb,
+                          LBM_Grid __restrict dstGrid, LBM_Grid dstGridb );
 //void __global__ performStreamCollide_kernel_wrapper_grad(float* srcGrid, float* d_srcGrid, float *dstGrid, float *d_dstGrid);
 #ifdef __cplusplus
 }

@@ -15,6 +15,7 @@
 #include <string.h>
 #include <float.h>
 #include <cuda_runtime_api.h>
+#include <enzyme/device_mirror>
 // includes, project
 #include "main.h"
 #include "lbm.h"
@@ -32,11 +33,11 @@
 #define DFL2 (1.0f/18.0f)
 #define DFL3 (1.0f/36.0f)
 
-// includes, kernels
-#include "lbm_kernel.cu"
-
 #define REAL_MARGIN (CALC_INDEX(0, 0, 2, 0) - CALC_INDEX(0,0,0,0))
 #define TOTAL_MARGIN (2*PADDED_X*PADDED_Y*N_CELL_ENTRIES)
+
+// includes, kernels
+#include "lbm_kernel.cu"
 
 /******************************************************************************/
 
@@ -46,9 +47,10 @@ __host__ static void kern(float* src, float* dst) {
 	dimGrid.x = SIZE_Y;
 	dimGrid.y = SIZE_Z;
 	dimBlock.y = dimBlock.z = dimGrid.z = 1;
-	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(src, dst);
+	performStreamCollide_kernel_wrapper<<<dimGrid, dimBlock>>>(
+		src, dst);
 #ifndef ALLOW_AD
-	CUDA_ERRCK;
+	// CUDA_ERRCK;
 #endif
 }
 
@@ -117,7 +119,11 @@ void* __enzyme_register_gradient_kern[3] = { (void*)kern, (void*)aug_kern, (void
 extern "C" void __enzyme_ptr_size_hint(void *, size_t, size_t);
 #endif
 
-void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstGrid ) {
+void CUDA_LBM_kernel_loop_inner( int nTimeSteps,
+		const int* __restrict deviceTimeSteps,
+		LBM_Grid __restrict srcGrid, LBM_Grid __restrict dstGrid ) {
+	const int mirroredTimeSteps =
+		__enzyme_device_mirror(nTimeSteps, deviceTimeSteps);
 
 #ifdef BINOMIAL_CHECKPOINTING
 	const size_t gridHintSize =
@@ -133,6 +139,7 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
     __attribute__((enzyme_set_mincut(ENZYME_MINCUT)))
 #endif
 	for (unsigned int i=0; i<nTimeSteps/2; i++) {
+	for (unsigned int i=0; i<mirroredTimeSteps/2; i++) {
 		kern(srcGrid, dstGrid);
 		kern(dstGrid, srcGrid);
 	}
@@ -140,8 +147,12 @@ void CUDA_LBM_kernel_loop_inner( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid dstG
 
 
 extern void __enzyme_autodiff(void *, ...);
+extern int enzyme_const;
 
-__host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid srcGridb, LBM_Grid dstGrid, LBM_Grid dstGridb ) {
+__host__ void CUDA_LBM_kernel_loop( int nTimeSteps,
+		const int* __restrict deviceTimeSteps,
+		LBM_Grid __restrict srcGrid, LBM_Grid srcGridb,
+		LBM_Grid __restrict dstGrid, LBM_Grid dstGridb ) {
 
 	constexpr size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
 	constexpr size_t start = 15489;// + REAL_MARGIN;
@@ -152,22 +163,24 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 #ifdef VERIFY
 
 
-	cudaMemset(srcGridb - REAL_MARGIN, 0, size);
-	cudaMemset(dstGridb - REAL_MARGIN, 0, size);
+	cudaMemset(srcGridb, 0, size);
+	cudaMemset(dstGridb, 0, size);
 
 	float* here = new float[N];
        	memset(here, 0, N*sizeof(float));
 	here[0] = 1.0;
-	cudaMemcpy(srcGridb + start, &here[0], N * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(srcGridb + REAL_MARGIN + start, &here[0], N * sizeof(float), cudaMemcpyHostToDevice);
 
-	cudaMemcpy(&here[0], srcGrid + start, N * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&here[0], srcGrid + REAL_MARGIN + start, N * sizeof(float), cudaMemcpyDeviceToHost);
 #endif
-	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps, srcGrid, srcGridb, dstGrid, dstGridb);
+	__enzyme_autodiff((void*)CUDA_LBM_kernel_loop_inner, nTimeSteps,
+			enzyme_const, deviceTimeSteps,
+			srcGrid, srcGridb, dstGrid, dstGridb);
 #ifdef ALLOCATOR
 	delete A;
 #endif
 #ifdef VERIFY
-	cudaMemcpy(&here[0], srcGridb + start, N*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&here[0], srcGridb + REAL_MARGIN + start, N*sizeof(float), cudaMemcpyDeviceToHost);
 	for(int i=0; i<N; i++) printf("out here[%d]=%f\n", i, here[i]);
 	printf("der=%f\n", here[0]);	
 #endif
@@ -177,24 +190,24 @@ __host__ void CUDA_LBM_kernel_loop( int nTimeSteps, LBM_Grid srcGrid, LBM_Grid s
 
 	float* cache = new float[size/sizeof(float)];
 
-	cudaMemcpy(&cache[0], srcGrid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&cache[0], srcGrid, size, cudaMemcpyDeviceToHost);
 #endif
 
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, deviceTimeSteps, srcGrid, dstGrid);
 
 #ifdef VERIFY
 	constexpr size_t N = 1;
 	#define PREC 1e-2
 	float* here = new float[N];
-	cudaMemcpy(&here[0], srcGrid + start, N*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&here[0], srcGrid + REAL_MARGIN + start, N*sizeof(float), cudaMemcpyDeviceToHost);
 	
 	cache[start + REAL_MARGIN] += PREC;
-	cudaMemcpy(srcGrid - REAL_MARGIN, &cache[0], size, cudaMemcpyHostToDevice);
+	cudaMemcpy(srcGrid, &cache[0], size, cudaMemcpyHostToDevice);
 	
-	CUDA_LBM_kernel_loop_inner(nTimeSteps, srcGrid, dstGrid);
+	CUDA_LBM_kernel_loop_inner(nTimeSteps, deviceTimeSteps, srcGrid, dstGrid);
 	
 	float* here2 = new float[N];
-	cudaMemcpy(&here2[0], srcGrid + start, N*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&here2[0], srcGrid + REAL_MARGIN + start, N*sizeof(float), cudaMemcpyDeviceToHost);
 
 	for(int i=0; i<N; i++) printf("real PREC=%e here[%d]=%f here2=%f dif=%e, der=%f\n", PREC, i, here[i], here2[i], here2[i]-here[i], (here2[i]-here[i])/PREC);
 #endif
@@ -218,7 +231,6 @@ void LBM_allocateGrid( float** ptr ) {
 
 	printf( "LBM_allocateGrid: allocated %.1f MByte\n",
 			size / (1024.0*1024.0) );
-	*ptr += REAL_MARGIN;
 }
 
 /******************************************************************************/
@@ -227,26 +239,26 @@ void CUDA_LBM_allocateGrid( float** ptr ) {
 	const size_t size = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
 	cudaMalloc((void**)ptr, size);
         CUDA_ERRCK;
-	*ptr += REAL_MARGIN;
 }
 
 /*############################################################################*/
 
 void LBM_freeGrid( float** ptr ) {
-	free( *ptr-REAL_MARGIN );
+	free( *ptr );
 	*ptr = NULL;
 }
 
 /******************************************************************************/
 
 void CUDA_LBM_freeGrid( float** ptr ) {
-	cudaFree( *ptr-REAL_MARGIN );
+	cudaFree( *ptr );
 	*ptr = NULL;
 }
 
 /*############################################################################*/
 
 void LBM_initializeGrid( LBM_Grid grid ) {
+	grid += REAL_MARGIN;
 	SWEEP_VAR
 
 	SWEEP_START( 0, 0, 0, 0, 0, SIZE_Z )
@@ -279,7 +291,7 @@ void LBM_initializeGrid( LBM_Grid grid ) {
 void CUDA_LBM_initializeGrid( float** d_grid, float** h_grid ) {
 	const size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
 
-	cudaMemcpy(*d_grid - REAL_MARGIN, *h_grid - REAL_MARGIN, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(*d_grid, *h_grid, size, cudaMemcpyHostToDevice);
         CUDA_ERRCK;
 }
 
@@ -287,7 +299,7 @@ void CUDA_LBM_getDeviceGrid( float** d_grid, float** h_grid ) {
 	const size_t size   = TOTAL_PADDED_CELLS*N_CELL_ENTRIES*sizeof( float ) + 2*TOTAL_MARGIN*sizeof( float );
         cudaThreadSynchronize();
         CUDA_ERRCK;
-	cudaMemcpy(*h_grid - REAL_MARGIN, *d_grid - REAL_MARGIN, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(*h_grid, *d_grid, size, cudaMemcpyDeviceToHost);
         CUDA_ERRCK;
 }
 
@@ -303,6 +315,7 @@ void LBM_swapGrids( LBM_GridPtr grid1, LBM_GridPtr grid2 ) {
 
 void LBM_loadObstacleFile( LBM_Grid grid, const char* filename ) {
 	int x,  y,  z;
+	grid += REAL_MARGIN;
 
 	FILE* file = fopen( filename, "rb" );
 
@@ -323,6 +336,7 @@ void LBM_loadObstacleFile( LBM_Grid grid, const char* filename ) {
 
 void LBM_initializeSpecialCellsForLDC( LBM_Grid grid ) {
 	int x,  y,  z;
+	grid += REAL_MARGIN;
 
 	for( z = -2; z < SIZE_Z+2; z++ ) {
 		for( y = 0; y < SIZE_Y; y++ ) {
@@ -354,6 +368,7 @@ void LBM_showGridStatistics( LBM_Grid grid ) {
 	float minU2  = 1e+30, maxU2  = -1e+30, u2;
 	float minRho = 1e+30, maxRho = -1e+30, rho;
 	float mass = 0;
+	grid += REAL_MARGIN;
 
 	SWEEP_VAR
 
@@ -437,6 +452,7 @@ static void storeValue( FILE* file, OUTPUT_PRECISION* v ) {
 void LBM_storeVelocityField( LBM_Grid grid, const char* filename,
 		const int binary ) {
 	OUTPUT_PRECISION rho, ux, uy, uz;
+	grid += REAL_MARGIN;
 
 	FILE* file = fopen( filename, (binary ? "wb" : "w") );
 	if (!file) {
@@ -491,4 +507,3 @@ void LBM_storeVelocityField( LBM_Grid grid, const char* filename,
 
 	fclose( file );
 }
-

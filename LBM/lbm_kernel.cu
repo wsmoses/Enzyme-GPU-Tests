@@ -45,7 +45,8 @@ void __global__ performStreamCollide_kernel_wrapper_grad(float* srcGrid, float* 
 __attribute__((always_inline)) __device__ void performStreamCollide_kernel( void* __restrict__ srcGridUntyped, float* __restrict__ dstGrid ) 
 {
        
-	float * srcGrid = (float *) srcGridUntyped;
+	float * srcGrid = (float *) srcGridUntyped + REAL_MARGIN;
+	dstGrid += REAL_MARGIN;
 	//Using some predefined macros here.  Consider this the declaration 
         //  and initialization of the variables SWEEP_X, SWEEP_Y and SWEEP_Z
 
@@ -194,9 +195,10 @@ __attribute__((always_inline)) __device__ void performStreamCollide_kernel( void
 
 
 
-__global__ void performStreamCollide_kernel_wrapper( float* srcGrid, float* dstGrid )
+__global__ void performStreamCollide_kernel_wrapper(
+		float* __restrict__ srcGrid, float* __restrict__ dstGrid )
 {
-	performStreamCollide_kernel(srcGrid, dstGrid );
+	performStreamCollide_kernel(srcGrid, dstGrid);
 }
 
 #ifdef ALLOW_AD

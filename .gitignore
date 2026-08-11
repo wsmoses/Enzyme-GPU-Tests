@@ -1,0 +1,4 @@
+*.o
+*.re_export
+*.build.log
+*.error.log
