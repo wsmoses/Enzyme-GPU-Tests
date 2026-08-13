@@ -45,6 +45,7 @@ SPLITMULTI  ?= yes
 AFFINEAD    ?= no
 RMATOMICS   ?= no
 SORTBLOCK   ?= no
+HOISTALLOC  ?= yes
 # Cap on registers per thread. The reverse kernel is latency-bound on scattered
 # lookups, so occupancy can be worth more than the spills a cap introduces.
 MAXREG      ?= no
@@ -114,12 +115,23 @@ else
 		# Turn the atomics the reverse pass introduces back into load/store where
 		# polyhedral analysis proves no race exists
 		CFLAGS += -mllvm -reactant-remove-atomics=1
+	else
+		CFLAGS += -mllvm -reactant-remove-atomics=0
 	endif
 
 	ifeq ($(SORTBLOCK),yes)
 		# Cluster the resulting loads at the top of their block so they overlap
 		# instead of forming a chain of dependent round trips
 		CFLAGS += -mllvm -reactant-sort-block-memory=1
+	else
+		CFLAGS += -mllvm -reactant-sort-block-memory=0
+	endif
+
+	ifeq ($(HOISTALLOC),yes)
+		# Move the allocations the reverse pass makes per iteration out of the loop
+		CFLAGS += -mllvm -reactant-hoist-loop-allocations=1
+	else
+		CFLAGS += -mllvm -reactant-hoist-loop-allocations=0
 	endif
 endif
 
