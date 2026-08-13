@@ -35,6 +35,9 @@ ALLOCATOR   ?= no
 MINCUT      ?= yes
 READONLY    ?= yes
 SPLITMULTI  ?= yes
+RMATOMICS   ?= no
+SORTBLOCK   ?= no
+HOISTALLOC  ?= yes
 AFFINEAD    ?= no
 VERIFY      ?= no
 
@@ -93,6 +96,29 @@ else
   ifeq ($(SPLITMULTI),yes)
     # Split certain multi-result ops into separate ops. Can lead to better mincut solutions
     CFLAGS += -mllvm -reactant-split-multi-results
+  endif
+
+  ifeq ($(RMATOMICS),yes)
+    # Turn the atomics the reverse pass introduces back into load/store where
+    # polyhedral analysis proves no race exists
+    CFLAGS += -mllvm -reactant-remove-atomics=1
+  else
+    CFLAGS += -mllvm -reactant-remove-atomics=0
+  endif
+
+  ifeq ($(SORTBLOCK),yes)
+    # Cluster the resulting loads at the top of their block so they overlap
+    # instead of forming a chain of dependent round trips
+    CFLAGS += -mllvm -reactant-sort-block-memory=1
+  else
+    CFLAGS += -mllvm -reactant-sort-block-memory=0
+  endif
+
+  ifeq ($(HOISTALLOC),yes)
+    # Move the allocations the reverse pass makes per iteration out of the loop
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=1
+  else
+    CFLAGS += -mllvm -reactant-hoist-loop-allocations=0
   endif
 endif
 
